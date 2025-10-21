@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MGB - Mushroom Grow Box - WiFi Setup</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .setup-container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        .setup-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .setup-header h1 {
+            color: var(--primary-color);
+            margin-bottom: 10px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        .status-badge.ap-mode {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        
+        .status-badge.connected {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .network-list {
+            margin: 20px 0;
+        }
+        
+        .network-item {
+            padding: 15px;
+            margin-bottom: 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .network-item:hover {
+            border-color: var(--primary-color);
+            background-color: #f8f9fa;
+        }
+        
+        .network-item.selected {
+            border-color: var(--primary-color);
+            background-color: #e8f5e9;
+        }
+        
+        .network-info {
+            flex: 1;
+        }
+        
+        .network-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: var(--text-color);
+        }
+        
+        .network-details {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 4px;
+        }
+        
+        .signal-strength {
+            display: flex;
+            gap: 2px;
+        }
+        
+        .signal-bar {
+            width: 4px;
+            height: 16px;
+            background-color: #ddd;
+            border-radius: 2px;
+        }
+        
+        .signal-bar.active {
+            background-color: var(--success-color);
+        }
+        
+        .connect-form {
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .connect-form.visible {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid var(--border-color);
+            border-radius: 5px;
+            font-size: 1rem;
+        }
+        
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .btn-full {
+            width: 100%;
+        }
+        
+        .btn-scan {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .btn-scan:hover {
+            background-color: #86ab51;
+        }
+        
+        .btn-connect {
+            background-color: var(--success-color);
+            color: white;
+        }
+        
+        .btn-connect:hover {
+            background-color: #238276;
+        }
+        
+        .btn-cancel {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .btn-cancel:hover {
+            background-color: #5a6268;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+        
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .alert-info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container">
+        <div class="setup-header">
+            <h1>🍄 WiFi-Konfiguration</h1>
+            <div id="status-badge" class="status-badge ap-mode">
+                Setup-Modus
+            </div>
+        </div>
+
+        <div id="alert-container"></div>
+
+        <div class="alert alert-info">
+            <strong>Hinweis:</strong> Wählen Sie ein WLAN-Netzwerk aus und geben Sie das Passwort ein.
+            Nach erfolgreicher Verbindung wird der Setup-Modus automatisch beendet.
+        </div>
+
+        <button id="scan-btn" class="btn btn-scan btn-full" onclick="scanNetworks()">
+            🔍 Nach Netzwerken suchen
+        </button>
+
+        <div id="loading" class="loading" style="display: none;">
+            Suche nach Netzwerken
+        </div>
+
+        <div id="network-list" class="network-list"></div>
+
+        <div id="connect-form" class="connect-form">
+            <div class="form-group">
+                <label for="ssid">Netzwerk (SSID):</label>
+                <input type="text" id="ssid" readonly>
+            </div>
+            <div class="form-group">
+                <label for="password">Passwort:</label>
+                <input type="password" id="password" placeholder="WLAN-Passwort eingeben">
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-cancel" onclick="cancelConnect()">Abbrechen</button>
+                <button class="btn btn-connect" onclick="connectToNetwork()">Verbinden</button>
+            </div>
+        </div>
+
+        <div style="margin-top: 30px; text-align: center; color: #666;">
+            <small>
+                Nach erfolgreicher Verbindung können Sie auf die normale<br>
+                Weboberfläche unter <a href="/">http://mgb.local</a> zugreifen.
+            </small>
+        </div>
+    </div>
+
+    <script>
+        let selectedNetwork = null;
+
+        // Status beim Laden prüfen
+        window.addEventListener('DOMContentLoaded', function() {
+            checkStatus();
+        });
+
+        async function checkStatus() {
+            try {
+                const response = await fetch('/wifi/api/status');
+                const data = await response.json();
+                
+                const statusBadge = document.getElementById('status-badge');
+                
+                if (data.connected) {
+                    statusBadge.className = 'status-badge connected';
+                    statusBadge.textContent = 'Verbunden';
+                    showAlert('Sie sind bereits mit einem WLAN verbunden!', 'success');
+                } else if (data.ap_mode) {
+                    statusBadge.className = 'status-badge ap-mode';
+                    statusBadge.textContent = `Setup-Modus: ${data.ap_ssid}`;
+                }
+            } catch (error) {
+                console.error('Fehler beim Abrufen des Status:', error);
+            }
+        }
+
+        async function scanNetworks() {
+            const scanBtn = document.getElementById('scan-btn');
+            const loading = document.getElementById('loading');
+            const networkList = document.getElementById('network-list');
+            
+            scanBtn.disabled = true;
+            loading.style.display = 'block';
+            networkList.innerHTML = '';
+            
+            try {
+                const response = await fetch('/wifi/api/scan');
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    displayNetworks(data.networks);
+                } else {
+                    showAlert('Fehler beim Scannen der Netzwerke', 'error');
+                }
+            } catch (error) {
+                console.error('Fehler beim Scannen:', error);
+                showAlert('Fehler beim Scannen: ' + error.message, 'error');
+            } finally {
+                scanBtn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayNetworks(networks) {
+            const networkList = document.getElementById('network-list');
+            
+            if (networks.length === 0) {
+                networkList.innerHTML = '<p style="text-align: center; color: #666;">Keine Netzwerke gefunden</p>';
+                return;
+            }
+            
+            networks.forEach(network => {
+                const networkItem = document.createElement('div');
+                networkItem.className = 'network-item';
+                networkItem.onclick = () => selectNetwork(network);
+                
+                // Signalstärke berechnen (vereinfacht)
+                const signalPercent = parseInt(network.signal) || 50;
+                const bars = Math.ceil(signalPercent / 25);
+                
+                networkItem.innerHTML = `
+                    <div class="network-info">
+                        <div class="network-name">${network.ssid}</div>
+                        <div class="network-details">${network.security || 'WPA2'}</div>
+                    </div>
+                    <div class="signal-strength">
+                        ${Array(4).fill().map((_, i) => 
+                            `<div class="signal-bar ${i < bars ? 'active' : ''}"></div>`
+                        ).join('')}
+                    </div>
+                `;
+                
+                networkList.appendChild(networkItem);
+            });
+        }
+
+        function selectNetwork(network) {
+            selectedNetwork = network;
+            
+            // Entferne vorherige Auswahl
+            document.querySelectorAll('.network-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // Markiere gewähltes Netzwerk
+            event.currentTarget.classList.add('selected');
+            
+            // Zeige Formular
+            document.getElementById('ssid').value = network.ssid;
+            document.getElementById('password').value = '';
+            document.getElementById('connect-form').classList.add('visible');
+            document.getElementById('password').focus();
+        }
+
+        function cancelConnect() {
+            document.getElementById('connect-form').classList.remove('visible');
+            document.querySelectorAll('.network-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            selectedNetwork = null;
+        }
+
+        async function connectToNetwork() {
+            if (!selectedNetwork) return;
+            
+            const ssid = document.getElementById('ssid').value;
+            const password = document.getElementById('password').value;
+            
+            if (!password) {
+                showAlert('Bitte geben Sie ein Passwort ein', 'error');
+                return;
+            }
+            
+            const connectBtn = event.target;
+            connectBtn.disabled = true;
+            connectBtn.textContent = 'Verbinde...';
+            
+            try {
+                const response = await fetch('/wifi/api/connect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ ssid, password })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showAlert('Verbindung erfolgreich! Sie werden weitergeleitet...', 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = '/';
+                    }, 3000);
+                } else {
+                    showAlert('Verbindung fehlgeschlagen: ' + data.message, 'error');
+                    connectBtn.disabled = false;
+                    connectBtn.textContent = 'Verbinden';
+                }
+            } catch (error) {
+                console.error('Fehler beim Verbinden:', error);
+                showAlert('Fehler beim Verbinden: ' + error.message, 'error');
+                connectBtn.disabled = false;
+                connectBtn.textContent = 'Verbinden';
+            }
+        }
+
+        function showAlert(message, type) {
+            const alertContainer = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.textContent = message;
+            
+            alertContainer.innerHTML = '';
+            alertContainer.appendChild(alert);
+            
+            // Entferne Alert nach 5 Sekunden
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

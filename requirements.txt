@@ -1,0 +1,27 @@
+# Web Framework
+Flask==3.0.0
+Flask-SocketIO==5.3.5
+
+# Sensor Bibliotheken (Raspberry Pi kompatibel)
+# Anmerkung: Auf Windows für Entwicklung können Mock-Implementierungen verwendet werden
+# adafruit-circuitpython-dht==4.0.0  # DHT22 Sensor
+# adafruit-circuitpython-scd30==2.2.8  # CO2 Sensor (SCD30)
+# RPi.GPIO==0.7.1  # Für Raspberry Pi GPIO (nur auf Pi)
+
+# Datenverarbeitung
+python-dateutil==2.8.2
+pytz==2023.3
+
+# Datenbank
+sqlite3  # Standard Python Bibliothek
+
+# Hardware-Abstraktion (für PWM und GPIO)
+# pigpio==1.78  # Alternative für GPIO auf Raspberry Pi
+
+# Logging und Konfiguration
+python-json-logger==2.0.7
+pyyaml==6.0.1
+
+# Entwicklung und Testing
+pytest==7.4.3
+pytest-cov==4.1.0

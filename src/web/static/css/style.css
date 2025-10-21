@@ -1,0 +1,329 @@
+/* Reset und Basis-Styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #2c5f2d;
+    --secondary-color: #97bc62;
+    --accent-color: #f4a261;
+    --danger-color: #e76f51;
+    --success-color: #2a9d8f;
+    --bg-color: #f8f9fa;
+    --card-bg: #ffffff;
+    --text-color: #333333;
+    --border-color: #dee2e6;
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header */
+header {
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    color: white;
+    padding: 30px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    box-shadow: var(--shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header h1 {
+    font-size: 2.5rem;
+    margin: 0;
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.status-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-dot.online {
+    background-color: var(--success-color);
+    animation: pulse 2s infinite;
+}
+
+.status-dot.offline {
+    background-color: var(--danger-color);
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+}
+
+/* Sections */
+section {
+    background: var(--card-bg);
+    padding: 25px;
+    border-radius: 10px;
+    margin-bottom: 30px;
+    box-shadow: var(--shadow);
+}
+
+section h2 {
+    color: var(--primary-color);
+    margin-bottom: 20px;
+    font-size: 1.8rem;
+    border-bottom: 3px solid var(--secondary-color);
+    padding-bottom: 10px;
+}
+
+/* Sensor Grid */
+.sensor-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+.sensor-card {
+    background: linear-gradient(135deg, #ffffff, #f8f9fa);
+    padding: 25px;
+    border-radius: 10px;
+    border: 2px solid var(--border-color);
+    text-align: center;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.sensor-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.sensor-icon {
+    font-size: 3rem;
+    margin-bottom: 10px;
+}
+
+.sensor-card h3 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    font-size: 1.3rem;
+}
+
+.sensor-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--text-color);
+    margin-bottom: 10px;
+}
+
+.sensor-value .value {
+    color: var(--primary-color);
+}
+
+.sensor-value .unit {
+    font-size: 1.5rem;
+    color: #666;
+}
+
+.sensor-target {
+    color: #666;
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+}
+
+.sensor-status {
+    padding: 8px 15px;
+    border-radius: 20px;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+}
+
+.sensor-status.ok {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.sensor-status.warning {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.sensor-status.critical {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Actuator Grid */
+.actuator-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.actuator-card {
+    background: var(--card-bg);
+    padding: 20px;
+    border-radius: 10px;
+    border: 2px solid var(--border-color);
+    text-align: center;
+}
+
+.actuator-icon {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.actuator-card h3 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+}
+
+.actuator-status {
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.actuator-status .status-indicator {
+    font-size: 1.5rem;
+}
+
+.actuator-status.active .status-indicator {
+    color: var(--success-color);
+}
+
+.actuator-status.inactive .status-indicator {
+    color: #999;
+}
+
+.fan-speed {
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+    color: #666;
+}
+
+.actuator-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+/* Buttons */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 600;
+}
+
+.btn-on {
+    background-color: var(--success-color);
+    color: white;
+}
+
+.btn-on:hover {
+    background-color: #238276;
+}
+
+.btn-off {
+    background-color: var(--danger-color);
+    color: white;
+}
+
+.btn-off:hover {
+    background-color: #d1624a;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Charts */
+.chart-container {
+    margin-bottom: 30px;
+    padding: 20px;
+    background: white;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+/* Alarms */
+.alarm-list {
+    min-height: 100px;
+}
+
+.alarm-item {
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    border-left: 4px solid var(--danger-color);
+    background-color: #fff3cd;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.alarm-item.critical {
+    border-left-color: var(--danger-color);
+    background-color: #f8d7da;
+}
+
+.alarm-item.warning {
+    border-left-color: var(--accent-color);
+    background-color: #fff3cd;
+}
+
+.no-alarms {
+    text-align: center;
+    color: #999;
+    padding: 40px;
+    font-style: italic;
+}
+
+/* Footer */
+footer {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    header h1 {
+        font-size: 1.8rem;
+    }
+    
+    .sensor-grid,
+    .actuator-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .sensor-value {
+        font-size: 2rem;
+    }
+}

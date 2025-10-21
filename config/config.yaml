@@ -1,0 +1,109 @@
+# Konfiguration für die MGB - Mushroom Grow Box
+
+# Sensoreinstellungen
+sensors:
+  temperature:
+    enabled: true
+    pin: 4
+    min_value: 10.0
+    max_value: 35.0
+    target_value: 22.0
+    tolerance: 1.0
+    
+  humidity:
+    enabled: true
+    pin: 4
+    min_value: 50.0
+    max_value: 95.0
+    target_value: 85.0
+    tolerance: 5.0
+    
+  co2:
+    enabled: true
+    i2c_address: 0x61
+    min_value: 400
+    max_value: 2000
+    target_value: 800
+    tolerance: 100
+
+# Aktoreinstellungen
+actuators:
+  pump:
+    enabled: true
+    pin: 17
+    min_runtime: 5  # Sekunden
+    max_runtime: 60  # Sekunden
+    cooldown: 300  # Sekunden zwischen Aktivierungen
+    
+  heater:
+    enabled: true
+    pin: 27
+    max_temperature: 30.0  # Sicherheitsabschaltung
+    
+  fan:
+    enabled: true
+    pin: 22
+    pwm_frequency: 25000  # Hz
+    min_speed: 30  # Prozent
+    max_speed: 100  # Prozent
+
+# PID-Regler Parameter
+pid:
+  adaptive: true  # Adaptive PID-Regelung (empfohlen)
+  learning_rate: 0.01  # Lernrate für adaptive Anpassung
+  
+  temperature:
+    kp: 2.0
+    ki: 0.5
+    kd: 1.0
+    
+  humidity:
+    kp: 1.5
+    ki: 0.3
+    kd: 0.5
+    
+  co2:
+    kp: 1.0
+    ki: 0.2
+    kd: 0.3
+
+# Messzyklus
+measurement:
+  interval: 60  # Sekunden
+
+# Tag/Nacht-Rhythmus
+schedule:
+  day_start: "06:00"
+  night_start: "22:00"
+  
+  day_temperature: 22.0
+  night_temperature: 18.0
+  
+  day_humidity: 85.0
+  night_humidity: 90.0
+
+# Webserver
+web:
+  host: "0.0.0.0"
+  port: 5000
+  debug: false
+
+# WiFi-Konfiguration
+wifi:
+  ap_ssid: "MGB-Setup"
+  ap_password: "pilzzucht2025"
+  check_interval: 30  # Sekunden
+  max_retries: 3
+
+# Logging
+logging:
+  level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  data_retention_days: 30
+
+# Alarme
+alarms:
+  temperature_critical_min: 8.0
+  temperature_critical_max: 35.0
+  humidity_critical_min: 40.0
+  humidity_critical_max: 98.0
+  co2_critical_max: 3000
