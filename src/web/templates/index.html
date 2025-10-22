@@ -3,18 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MGB - Mushroom Grow Box - Überwachung</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title data-i18n="app_title">MGB - Mushroom Grow Box - Überwachung</title>
+    <!-- Theme CSS will be loaded dynamically by theme-switcher.js -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/switchers.css') }}">
     <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="{{ url_for('static', filename='js/theme-switcher.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/i18n.js') }}"></script>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>🍄 MGB - Mushroom Grow Box - Überwachung v2.0</h1>
-            <div style="display: flex; align-items: center; gap: 20px;">
+            <h1 data-i18n="app_title">🍄 MGB - Mushroom Grow Box - Überwachung v2.0</h1>
+            <div class="header-controls">
                 <a href="/settings" style="color: white; text-decoration: none; padding: 8px 16px; background-color: rgba(76, 175, 80, 0.3); border-radius: 5px; font-size: 0.9rem; border: 2px solid rgba(76, 175, 80, 0.5);">
-                    ⚙️ Einstellungen
+                    <span data-i18n="nav_settings">⚙️ Einstellungen</span>
                 </a>
                 <a href="/wifi/setup" style="color: white; text-decoration: none; padding: 8px 16px; background-color: rgba(255,255,255,0.2); border-radius: 5px; font-size: 0.9rem; border: 2px solid white;">
                     📡 WiFi-Setup
@@ -23,24 +26,25 @@
                     <span id="connection-status" class="status-dot offline"></span>
                     <span id="connection-text">Verbinde...</span>
                 </div>
+                <!-- Theme and Language switchers will be inserted here by JavaScript -->
             </div>
         </header>
 
         <main>
             <!-- Aktueller Status -->
             <section class="dashboard">
-                <h2>Aktuelle Messwerte</h2>
+                <h2 data-i18n="section_sensors">Aktuelle Messwerte</h2>
                 <div class="sensor-grid">
                     <!-- Temperatur -->
                     <div class="sensor-card">
                         <div class="sensor-icon">🌡️</div>
-                        <h3>Temperatur</h3>
+                        <h3 data-i18n="sensor_temperature">Temperatur</h3>
                         <div class="sensor-value">
                             <span id="temp-value" class="value">--</span>
-                            <span class="unit">°C</span>
+                            <span class="unit" data-i18n="unit_celsius">°C</span>
                         </div>
                         <div class="sensor-target">
-                            Ziel: <span id="temp-target">--</span>°C
+                            <span data-i18n="target_value">Ziel</span>: <span id="temp-target">--</span><span data-i18n="unit_celsius">°C</span>
                         </div>
                         <div id="temp-status" class="sensor-status">--</div>
                     </div>
@@ -48,13 +52,13 @@
                     <!-- Luftfeuchtigkeit -->
                     <div class="sensor-card">
                         <div class="sensor-icon">💧</div>
-                        <h3>Luftfeuchtigkeit</h3>
+                        <h3 data-i18n="sensor_humidity">Luftfeuchtigkeit</h3>
                         <div class="sensor-value">
                             <span id="humidity-value" class="value">--</span>
-                            <span class="unit">%</span>
+                            <span class="unit" data-i18n="unit_percent">%</span>
                         </div>
                         <div class="sensor-target">
-                            Ziel: <span id="humidity-target">--</span>%
+                            <span data-i18n="target_value">Ziel</span>: <span id="humidity-target">--</span><span data-i18n="unit_percent">%</span>
                         </div>
                         <div id="humidity-status" class="sensor-status">--</div>
                     </div>
@@ -62,13 +66,13 @@
                     <!-- CO2 -->
                     <div class="sensor-card">
                         <div class="sensor-icon">🌫️</div>
-                        <h3>CO2-Gehalt</h3>
+                        <h3 data-i18n="sensor_co2">CO2-Gehalt</h3>
                         <div class="sensor-value">
                             <span id="co2-value" class="value">--</span>
-                            <span class="unit">ppm</span>
+                            <span class="unit" data-i18n="unit_ppm">ppm</span>
                         </div>
                         <div class="sensor-target">
-                            Ziel: <span id="co2-target">--</span> ppm
+                            <span data-i18n="target_value">Ziel</span>: <span id="co2-target">--</span> <span data-i18n="unit_ppm">ppm</span>
                         </div>
                         <div id="co2-status" class="sensor-status">--</div>
                     </div>
@@ -77,50 +81,50 @@
 
             <!-- Aktoren -->
             <section class="actuators">
-                <h2>Aktoren</h2>
+                <h2 data-i18n="section_actuators">Aktoren</h2>
                 <div class="actuator-grid">
                     <!-- Pumpe -->
                     <div class="actuator-card">
                         <div class="actuator-icon">💦</div>
-                        <h3>Wasserpumpe</h3>
+                        <h3 data-i18n="actuator_humidifier">Wasserpumpe</h3>
                         <div id="pump-status" class="actuator-status">
                             <span class="status-indicator">●</span>
-                            <span>Inaktiv</span>
+                            <span data-i18n="status_inactive">Inaktiv</span>
                         </div>
                         <div class="actuator-controls">
-                            <button onclick="controlActuator('pump', 'on')" class="btn btn-on">Ein</button>
-                            <button onclick="controlActuator('pump', 'off')" class="btn btn-off">Aus</button>
+                            <button onclick="controlActuator('pump', 'on')" class="btn btn-on" data-i18n="btn_on">Ein</button>
+                            <button onclick="controlActuator('pump', 'off')" class="btn btn-off" data-i18n="btn_off">Aus</button>
                         </div>
                     </div>
 
                     <!-- Heizung -->
                     <div class="actuator-card">
                         <div class="actuator-icon">🔥</div>
-                        <h3>Heizmatten</h3>
+                        <h3 data-i18n="actuator_heater">Heizmatten</h3>
                         <div id="heater-status" class="actuator-status">
                             <span class="status-indicator">●</span>
-                            <span>Inaktiv</span>
+                            <span data-i18n="status_inactive">Inaktiv</span>
                         </div>
                         <div class="actuator-controls">
-                            <button onclick="controlActuator('heater', 'on')" class="btn btn-on">Ein</button>
-                            <button onclick="controlActuator('heater', 'off')" class="btn btn-off">Aus</button>
+                            <button onclick="controlActuator('heater', 'on')" class="btn btn-on" data-i18n="btn_on">Ein</button>
+                            <button onclick="controlActuator('heater', 'off')" class="btn btn-off" data-i18n="btn_off">Aus</button>
                         </div>
                     </div>
 
                     <!-- Lüfter -->
                     <div class="actuator-card">
                         <div class="actuator-icon">🌀</div>
-                        <h3>Lüfter</h3>
+                        <h3 data-i18n="actuator_fan">Lüfter</h3>
                         <div id="fan-status" class="actuator-status">
                             <span class="status-indicator">●</span>
-                            <span>Inaktiv</span>
+                            <span data-i18n="status_inactive">Inaktiv</span>
                         </div>
                         <div id="fan-speed" class="fan-speed">
-                            Geschwindigkeit: <span>0</span>%
+                            <span data-i18n="fan_speed">Geschwindigkeit</span>: <span>0</span>%
                         </div>
                         <div class="actuator-controls">
-                            <button onclick="controlActuator('fan', 'on')" class="btn btn-on">Ein</button>
-                            <button onclick="controlActuator('fan', 'off')" class="btn btn-off">Aus</button>
+                            <button onclick="controlActuator('fan', 'on')" class="btn btn-on" data-i18n="btn_on">Ein</button>
+                            <button onclick="controlActuator('fan', 'off')" class="btn btn-off" data-i18n="btn_off">Aus</button>
                         </div>
                     </div>
                 </div>
@@ -128,7 +132,7 @@
 
             <!-- Diagramme -->
             <section class="charts">
-                <h2>Verlauf (letzte 24h)</h2>
+                <h2 data-i18n="section_charts">Verlauf (letzte 24h)</h2>
                 <div class="chart-container">
                     <canvas id="tempChart"></canvas>
                 </div>
@@ -142,9 +146,9 @@
 
             <!-- Alarme -->
             <section class="alarms">
-                <h2>Alarme</h2>
+                <h2 data-i18n="section_alarms">Alarme</h2>
                 <div id="alarm-list" class="alarm-list">
-                    <p class="no-alarms">Keine aktiven Alarme</p>
+                    <p class="no-alarms" data-i18n="no_alarms">Keine aktiven Alarme</p>
                 </div>
             </section>
         </main>

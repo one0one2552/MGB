@@ -126,7 +126,10 @@ function updateActuator(actuatorId, actuatorData) {
     
     if (statusElement && actuatorData) {
         const isActive = actuatorData.active;
-        const statusText = isActive ? 'Aktiv' : 'Inaktiv';
+        const i18n = window.i18n;
+        const statusText = isActive ? 
+            (i18n ? i18n.t('status_active') : 'Aktiv') : 
+            (i18n ? i18n.t('status_inactive') : 'Inaktiv');
         
         statusElement.className = `actuator-status ${isActive ? 'active' : 'inactive'}`;
         statusElement.innerHTML = `
@@ -144,14 +147,15 @@ function updateActuator(actuatorId, actuatorData) {
     }
 }
 
-// Status-Text
+// Status-Text mit i18n
 function getStatusText(status) {
-    const statusTexts = {
-        'ok': 'OK',
-        'warning': 'Warnung',
-        'critical': 'Kritisch'
+    const i18n = window.i18n;
+    const statusKeys = {
+        'ok': 'status_ok',
+        'warning': 'status_warning',
+        'critical': 'status_critical'
     };
-    return statusTexts[status] || 'Unbekannt';
+    return i18n ? i18n.t(statusKeys[status] || 'status_ok') : status;
 }
 
 // Aktor steuern

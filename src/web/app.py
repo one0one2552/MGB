@@ -12,9 +12,10 @@ import sys
 # Pfad für Imports hinzufügen
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# WiFi-Setup importieren
+# WiFi-Setup und Übersetzungen importieren
 from web.wifi_setup import wifi_bp, init_wifi_manager
 from utils.wifi_manager import WiFiManager
+from utils.translations import get_translations, get_available_languages
 
 # Logger einrichten
 logging.basicConfig(level=logging.INFO)
@@ -241,6 +242,27 @@ def control_actuator(actuator_name, action):
         'actuator': actuator_name,
         'action': action
     })
+
+
+@app.route('/api/translations/<lang>')
+def get_translations_endpoint(lang):
+    """
+    API-Endpunkt für Übersetzungen
+    
+    Args:
+        lang: Sprachcode (de, en)
+    """
+    translations = get_translations(lang)
+    return jsonify(translations)
+
+
+@app.route('/api/languages')
+def get_languages():
+    """
+    API-Endpunkt für verfügbare Sprachen
+    """
+    languages = get_available_languages()
+    return jsonify(languages)
 
 
 @socketio.on('connect')

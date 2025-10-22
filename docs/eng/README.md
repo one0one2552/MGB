@@ -4,12 +4,6 @@
 
 Created by Stefan Schaad (MGB)
 
----
-
-[🇩🇪 Deutsche Version](README_DE.md) | [🇬🇧 English Version](README.md)
-
----
-
 ## 📋 Project Description
 
 This system continuously monitors environmental parameters (CO2, temperature, humidity) in a MGB - Mushroom Grow Box and controls corresponding actuators (pump with spray nozzles, heating mats, fans) to maintain ideal growth conditions.
@@ -139,17 +133,8 @@ The web interface offers:
 
 ## 📖 Further Documentation
 
-- [Requirements Specification](Pilzzuchtbox_Lastenheft.md) - Detailed requirements (German)
+- [Requirements Specification](Pilzzuchtbox_Lastenheft.md) - Detailed requirements
 - [Project Structure](docs/eng/structure.md) - Overview of the code structure
-- [Adaptive PID](docs/eng/adaptive_pid.md) - Documentation on adaptive PID control
-- [Settings Guide](docs/eng/settings_guide.md) - User guide for settings
-- [WiFi Setup](docs/eng/wifi_setup.md) - WiFi Access Point configuration
-
-**German Documentation:**
-- [Projektstruktur](docs/struktur.md) - Übersicht über die Code-Struktur
-- [Adaptive PID](docs/adaptive_pid.md) - Dokumentation zur adaptiven PID-Regelung
-- [Einstellungen](docs/settings_guide.md) - Benutzerhandbuch für Einstellungen
-- [WiFi Setup](docs/wifi_setup.md) - WiFi Access Point Konfiguration
 
 ## 📄 License
 
@@ -164,6 +149,3 @@ Stefan Schaad (MGB)
 **Status:** 🚧 In Development
 **Version:** 0.1.0
 **Last Update:** October 2025
-
-
-
