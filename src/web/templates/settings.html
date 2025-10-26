@@ -321,6 +321,11 @@
                             <p class="info-text">Abweichung vom Zielwert</p>
                         </div>
                     </div>
+                    <div class="form-group">
+                        <label for="temp_offset">Temperaturkorrektur (°C)</label>
+                        <input type="number" id="temp_offset" name="temp_offset" step="0.1" min="-5" max="5" required>
+                        <p class="info-text">Offset zur Kalibrierung des Sensors (z.B. -0.5 oder +1.2). Wird direkt auf den Messwert angewendet.</p>
+                    </div>
                 </div>
                 
                 <!-- Luftfeuchtigkeit Einstellungen -->
@@ -866,6 +871,7 @@
                 // Temperatur
                 document.getElementById('temp_target').value = config.sensors.temperature.target_value;
                 document.getElementById('temp_tolerance').value = config.sensors.temperature.tolerance;
+                document.getElementById('temp_offset').value = config.sensors.temperature.offset || 0.0;
                 
                 // Luftfeuchtigkeit
                 document.getElementById('humidity_target').value = config.sensors.humidity.target_value;
@@ -924,7 +930,8 @@
                 sensors: {
                     temperature: {
                         target_value: parseFloat(formData.get('temp_target')),
-                        tolerance: parseFloat(formData.get('temp_tolerance'))
+                        tolerance: parseFloat(formData.get('temp_tolerance')),
+                        offset: parseFloat(formData.get('temp_offset'))
                     },
                     humidity: {
                         target_value: parseFloat(formData.get('humidity_target')),

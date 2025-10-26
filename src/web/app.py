@@ -336,6 +336,8 @@ def update_settings():
             if 'temperature' in new_settings['sensors']:
                 config['sensors']['temperature']['target_value'] = new_settings['sensors']['temperature']['target_value']
                 config['sensors']['temperature']['tolerance'] = new_settings['sensors']['temperature']['tolerance']
+                if 'offset' in new_settings['sensors']['temperature']:
+                    config['sensors']['temperature']['offset'] = new_settings['sensors']['temperature']['offset']
             
             if 'humidity' in new_settings['sensors']:
                 config['sensors']['humidity']['target_value'] = new_settings['sensors']['humidity']['target_value']

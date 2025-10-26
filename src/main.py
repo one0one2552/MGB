@@ -83,11 +83,13 @@ def monitoring_loop(config: dict, data_logger: DataLogger, sensors: dict, actuat
                 result = scd30.read_all()
                 
                 if result:
-                    temperature = result['temperature']
+                    # Temperaturkorrektur anwenden
+                    temp_offset = config['sensors']['temperature'].get('offset', 0.0)
+                    temperature = result['temperature'] + temp_offset
                     humidity = result['humidity']
                     co2 = result['co2']
                     
-                    logger.info(f"SCD30: Temp={temperature}°C, Humidity={humidity}%, CO2={co2}ppm")
+                    logger.info(f"SCD30: Temp={temperature}°C (raw={result['temperature']}°C, offset={temp_offset}°C), Humidity={humidity}%, CO2={co2}ppm")
                     
                     # Daten loggen
                     data_logger.log_sensor_data('temperature', temperature, '°C')
