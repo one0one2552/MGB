@@ -95,19 +95,21 @@ def monitoring_loop(config: dict, data_logger: DataLogger, sensors: dict):
             time.sleep(5)  # Kurze Pause bei Fehler
 
 
-def start_web_server(config: dict, sensors: dict):
+def start_web_server(config: dict, sensors: dict, actuators: dict):
     """
     Startet den Webserver in einem separaten Thread
     
     Args:
         config: Konfiguration
         sensors: Dictionary mit Sensor-Instanzen
+        actuators: Dictionary mit Aktor-Instanzen
     """
     from web.app import app, socketio
     import web.app as web_app
     
-    # Sensoren an Web-App übergeben
+    # Sensoren und Aktoren an Web-App übergeben
     web_app.sensors = sensors
+    web_app.actuators = actuators
     
     host = config['web']['host']
     port = config['web']['port']
@@ -181,10 +183,52 @@ def main():
     except Exception as e:
         logger.error(f"✗ Fehler beim Initialisieren des SCD30: {e}", exc_info=True)
     
-    # TODO: Aktoren initialisieren
+    # Aktoren initialisieren
+    logger.info("Initialisiere Aktoren...")
+    actuators = {}
+    
+    try:
+        from actuators.relay_actuator import RelayActuator
+        
+        # Heizmatte (Relay)
+        heater_config = config.get('actuators', {}).get('heater', {})
+        if heater_config.get('enabled', False):
+            heater = RelayActuator(
+                name='heater',
+                pin=heater_config.get('pin', 27),
+                config=heater_config
+            )
+            if heater.is_available:
+                actuators['heater'] = heater
+                if heater.is_mock_mode():
+                    logger.warning("✗ Heizmatte im Mock-Modus (nur Testwerte)")
+                else:
+                    logger.info("✓ Heizmatte initialisiert auf GPIO Pin " + str(heater_config.get('pin', 27)))
+            else:
+                logger.warning("✗ Heizmatte nicht verfügbar")
+        
+        # Pumpe (Relay)
+        pump_config = config.get('actuators', {}).get('pump', {})
+        if pump_config.get('enabled', False):
+            pump = RelayActuator(
+                name='pump',
+                pin=pump_config.get('pin', 17),
+                config=pump_config
+            )
+            if pump.is_available:
+                actuators['pump'] = pump
+                if pump.is_mock_mode():
+                    logger.warning("✗ Pumpe im Mock-Modus (nur Testwerte)")
+                else:
+                    logger.info("✓ Pumpe initialisiert auf GPIO Pin " + str(pump_config.get('pin', 17)))
+            else:
+                logger.warning("✗ Pumpe nicht verfügbar")
+                
+    except Exception as e:
+        logger.error(f"✗ Fehler beim Initialisieren der Aktoren: {e}", exc_info=True)
     
     # Webserver in separatem Thread starten
-    web_thread = Thread(target=start_web_server, args=(config, sensors), daemon=True)
+    web_thread = Thread(target=start_web_server, args=(config, sensors, actuators), daemon=True)
     web_thread.start()
     logger.info("Webserver-Thread gestartet")
     
@@ -196,8 +240,16 @@ def main():
     finally:
         # Aufräumen
         logger.info("Fahre System herunter...")
-        # TODO: Alle Aktoren ausschalten
-        # TODO: Verbindungen schließen
+        
+        # Alle Aktoren ausschalten
+        for name, actuator in actuators.items():
+            try:
+                actuator.turn_off()
+                actuator.cleanup()
+                logger.info(f"✓ Aktor '{name}' heruntergefahren")
+            except Exception as e:
+                logger.error(f"Fehler beim Herunterfahren von '{name}': {e}")
+        
         logger.info("System beendet")
 
 

@@ -41,8 +41,9 @@ wifi_manager = WiFiManager(
 )
 init_wifi_manager(wifi_manager)
 
-# Globale Variable für Sensoren (wird von main.py gesetzt)
+# Globale Variablen für Sensoren und Aktoren (wird von main.py gesetzt)
 sensors = {}
+actuators = {}
 
 
 @app.route('/')
@@ -79,6 +80,32 @@ def get_status():
             humidity_value = result['humidity']
             co2_value = result['co2']
     
+    # Aktor-Status holen
+    actuator_status = {}
+    
+    # Heizmatte
+    if 'heater' in actuators:
+        heater = actuators['heater']
+        actuator_status['heater'] = {
+            'active': heater.is_active,
+            'available': heater.is_available
+        }
+    else:
+        actuator_status['heater'] = {'active': False, 'available': False}
+    
+    # Pumpe
+    if 'pump' in actuators:
+        pump = actuators['pump']
+        actuator_status['pump'] = {
+            'active': pump.is_active,
+            'available': pump.is_available
+        }
+    else:
+        actuator_status['pump'] = {'active': False, 'available': False}
+    
+    # Lüfter (TODO: später implementieren)
+    actuator_status['fan'] = {'active': False, 'available': False, 'speed': 0}
+    
     status = {
         'sensors': {
             'temperature': {
@@ -100,11 +127,7 @@ def get_status():
                 'status': 'ok'
             }
         },
-        'actuators': {
-            'pump': {'active': False, 'available': True},
-            'heater': {'active': True, 'available': True},
-            'fan': {'active': False, 'available': True, 'speed': 0}
-        },
+        'actuators': actuator_status,
         'mode': 'automatic',
         'alarms': []
     }
@@ -371,14 +394,40 @@ def control_actuator(actuator_name, action):
     if action not in ['on', 'off']:
         return jsonify({'status': 'error', 'message': 'Ungültige Aktion'}), 400
     
-    # TODO: Aktor steuern
-    logger.info(f"Aktor {actuator_name} wird {action} geschaltet")
+    # Prüfen ob Aktor existiert
+    if actuator_name not in actuators:
+        return jsonify({'status': 'error', 'message': f'Aktor "{actuator_name}" nicht gefunden'}), 404
     
-    return jsonify({
-        'status': 'success',
-        'actuator': actuator_name,
-        'action': action
-    })
+    actuator = actuators[actuator_name]
+    
+    # Aktor steuern
+    try:
+        if action == 'on':
+            success = actuator.turn_on()
+        else:
+            success = actuator.turn_off()
+        
+        if success:
+            logger.info(f"✓ Aktor '{actuator_name}' wurde {action} geschaltet")
+            return jsonify({
+                'status': 'success',
+                'actuator': actuator_name,
+                'action': action,
+                'is_active': actuator.is_active
+            })
+        else:
+            logger.warning(f"✗ Fehler beim Schalten von '{actuator_name}' auf {action}")
+            return jsonify({
+                'status': 'error',
+                'message': f'Aktor konnte nicht {action} geschaltet werden'
+            }), 500
+            
+    except Exception as e:
+        logger.error(f"✗ Ausnahme beim Steuern von '{actuator_name}': {e}")
+        return jsonify({
+            'status': 'error',
+            'message': str(e)
+        }), 500
 
 
 @app.route('/api/translations/<lang>')
