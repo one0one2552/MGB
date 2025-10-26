@@ -44,21 +44,33 @@ print(f"   → Ist das Relay AUS? (sollte AUS sein)")
 
 input("\n>>> Drücke ENTER für nächsten Schritt...\n")
 
-# LOW schreiben (Relay sollte anziehen)
-print("SCHRITT 4: GPIO.output(LOW) - Relay sollte ANZIEHEN")
+# LOW schreiben (Relay sollte abfallen)
+print("SCHRITT 4: GPIO.output(LOW) - Relay sollte ABFALLEN")
 GPIO.output(PIN, GPIO.LOW)
+time.sleep(0.2)  # Kurz warten
 actual = GPIO.input(PIN)
 print(f"   → Pin nach output(LOW): {'HIGH (1)' if actual else 'LOW (0)'}")
-print(f"   → Zieht das Relay jetzt AN? (sollte AN sein)")
+print(f"   → Fällt das Relay jetzt AB? (sollte AUS sein)")
 
 input("\n>>> Drücke ENTER für nächsten Schritt...\n")
 
-# Wieder HIGH (Relay sollte abfallen)
-print("SCHRITT 5: GPIO.output(HIGH) - Relay sollte ABFALLEN")
+# Wieder HIGH (Relay sollte anziehen)
+print("SCHRITT 5: GPIO.output(HIGH) - Relay sollte ANZIEHEN")
 GPIO.output(PIN, GPIO.HIGH)
+time.sleep(0.2)  # Kurz warten
 actual = GPIO.input(PIN)
 print(f"   → Pin nach output(HIGH): {'HIGH (1)' if actual else 'LOW (0)'}")
-print(f"   → Ist das Relay wieder AUS? (sollte AUS sein)")
+print(f"   → Zieht das Relay wieder AN? (sollte AN sein)")
+
+input("\n>>> Drücke ENTER für nächsten Schritt...\n")
+
+# LOW (Relay sollte abfallen)
+print("SCHRITT 6: GPIO.output(LOW) - Relay sollte ABFALLEN")
+GPIO.output(PIN, GPIO.LOW)
+time.sleep(0.2)  # Kurz warten
+actual = GPIO.input(PIN)
+print(f"   → Pin nach output(LOW): {'HIGH (1)' if actual else 'LOW (0)'}")
+print(f"   → Fällt das Relay wieder AB? (sollte AUS sein)")
 
 input("\n>>> Drücke ENTER zum Beenden...\n")
 
