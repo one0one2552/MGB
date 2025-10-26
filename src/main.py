@@ -53,7 +53,7 @@ def signal_handler(signum, frame):
     stop_event.set()
 
 
-def monitoring_loop(config: dict, data_logger: DataLogger, sensors: dict, actuators: dict, controllers: dict):
+def monitoring_loop(config: dict, data_logger: DataLogger, sensors: dict, actuators: dict, controllers: dict, config_path: str):
     """
     Hauptschleife für Überwachung und Regelung
     
@@ -63,12 +63,20 @@ def monitoring_loop(config: dict, data_logger: DataLogger, sensors: dict, actuat
         sensors: Dictionary mit Sensor-Instanzen
         actuators: Dictionary mit Aktor-Instanzen
         controllers: Dictionary mit PID-Controller-Instanzen
+        config_path: Pfad zur Konfigurationsdatei für Live-Reload
     """
     interval = config['measurement']['interval']
     logger.info(f"Starte Monitoring-Loop (Intervall: {interval}s)")
     
     while not stop_event.is_set():
         try:
+            # Konfiguration neu laden (für Live-Updates aus Webinterface)
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = yaml.safe_load(f)
+            except Exception as e:
+                logger.warning(f"Fehler beim Neuladen der Config: {e}")
+            
             # Sensoren auslesen
             if 'scd30' in sensors:
                 scd30 = sensors['scd30']
@@ -91,8 +99,36 @@ def monitoring_loop(config: dict, data_logger: DataLogger, sensors: dict, actuat
                         temp_controller = controllers['temperature']
                         heater = actuators['heater']
                         
-                        # Zielwert aus Konfiguration holen
+                        # Zielwert aus aktueller Konfiguration holen (Live-Update)
                         target_temp = config['sensors']['temperature']['target_value']
+                        temp_controller.set_setpoint(target_temp)
+                        
+                        # PID-Parameter aktualisieren falls adaptive Regelung deaktiviert wurde
+                        pid_config = config.get('pid', {})
+                        temp_pid_config = pid_config.get('temperature', {})
+                        
+                        # Adaptive Modus aktualisieren
+                        current_adaptive = pid_config.get('adaptive', True)
+                        if temp_controller.adaptive != current_adaptive:
+                            temp_controller.set_adaptive(current_adaptive)
+                            logger.info(f"PID adaptive Modus geändert: {current_adaptive}")
+                        
+                        # Wenn nicht adaptive: manuelle Parameter aktualisieren
+                        if not current_adaptive:
+                            new_kp = temp_pid_config.get('kp', 2.0)
+                            new_ki = temp_pid_config.get('ki', 0.5)
+                            new_kd = temp_pid_config.get('kd', 1.0)
+                            
+                            if (new_kp != temp_controller.kp_base or 
+                                new_ki != temp_controller.ki_base or 
+                                new_kd != temp_controller.kd_base):
+                                temp_controller.kp_base = new_kp
+                                temp_controller.ki_base = new_ki
+                                temp_controller.kd_base = new_kd
+                                temp_controller.kp = new_kp
+                                temp_controller.ki = new_ki
+                                temp_controller.kd = new_kd
+                                logger.info(f"PID Parameter aktualisiert: Kp={new_kp}, Ki={new_ki}, Kd={new_kd}")
                         
                         # PID-Berechnung (update verwendet den gespeicherten setpoint)
                         control_output = temp_controller.update(temperature)
@@ -154,6 +190,7 @@ def main():
     
     # Konfiguration laden
     config = load_config()
+    config_path = Path('config/config.yaml')
     
     # WiFi-Manager initialisieren und prüfen
     logger.info("Prüfe WiFi-Verbindung...")
@@ -288,7 +325,7 @@ def main():
     
     # Monitoring-Loop starten
     try:
-        monitoring_loop(config, data_logger, sensors, actuators, controllers)
+        monitoring_loop(config, data_logger, sensors, actuators, controllers, str(config_path))
     except Exception as e:
         logger.error(f"Kritischer Fehler: {e}", exc_info=True)
     finally:
