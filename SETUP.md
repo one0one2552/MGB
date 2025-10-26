@@ -201,10 +201,10 @@ Speichern: `Ctrl+O`, Beenden: `Ctrl+X`
 ## ✅ 6. System testen
 
 ### 6.1 Sensor-Test
-
+sudo python3 test_scd30.py
 ```bash
 cd ~/MGB
-sudo python3 test_scd30.py
+
 ```
 
 Erwartete Ausgabe:
@@ -317,8 +317,10 @@ sudo pip3 install flask flask-socketio
 
 **Lösung:**
 ```bash
-sudo pip3 install adafruit-circuitpython-scd30
+sudo pip3 install adafruit-blinka adafruit-circuitpython-scd30 --break-system-packages
 ```
+
+Das `board` Modul ist Teil von Adafruit Blinka (CircuitPython für Raspberry Pi).
 
 ### Problem: Relay zieht nicht an
 
