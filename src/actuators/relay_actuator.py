@@ -64,10 +64,16 @@ class RelayActuator(BaseActuator):
             GPIO.setmode(GPIO.BCM)
             GPIO.setwarnings(False)
             
+            # Pin cleanup (falls vorher verwendet)
+            try:
+                GPIO.cleanup(self.pin)
+            except:
+                pass
+            
             # Pin als Output konfigurieren
             GPIO.setup(self.pin, GPIO.OUT)
             
-            # Initial AUSGESCHALTET
+            # Initial AUSGESCHALTET - SOFORT setzen!
             # Bei inverted=True (LOW-Level-Trigger): HIGH = AUS, LOW = AN
             # Bei inverted=False (HIGH-Level-Trigger): LOW = AUS, HIGH = AN
             initial_state = GPIO.HIGH if self.inverted else GPIO.LOW
@@ -77,7 +83,7 @@ class RelayActuator(BaseActuator):
             self.is_available = True
             self._mock_mode = False
             
-            logger.info(f"✓ Relay '{self.name}' auf Pin {self.pin} initialisiert (inverted={self.inverted}, initial={initial_state})")
+            logger.info(f"✓ Relay '{self.name}' auf Pin {self.pin} initialisiert (inverted={self.inverted}, initial={'HIGH' if initial_state == GPIO.HIGH else 'LOW'})")
             return True
             
         except ImportError:
