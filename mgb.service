@@ -1,0 +1,24 @@
+[Unit]
+Description=MGB - Mushroom Grow Box Automation
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/one0one/MGB
+ExecStart=/usr/bin/python3 /home/one0one/MGB/src/main.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Umgebungsvariablen
+Environment="PYTHONUNBUFFERED=1"
+
+# Sicherheitseinstellungen
+# Verhindert zu häufige Neustarts
+StartLimitInterval=200
+StartLimitBurst=5
+
+[Install]
+WantedBy=multi-user.target
