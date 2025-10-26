@@ -196,22 +196,70 @@ function initCharts() {
             plugins: {
                 legend: {
                     display: true,
-                    position: 'top'
+                    position: 'top',
+                    labels: {
+                        color: '#e0e0e0',
+                        font: {
+                            size: 12
+                        }
+                    }
                 }
             },
             scales: {
                 x: {
                     display: true,
+                    type: 'time',
+                    time: {
+                        displayFormats: {
+                            hour: 'HH:mm',
+                            day: 'DD.MM HH:mm',
+                            week: 'DD.MM',
+                            month: 'DD.MM'
+                        },
+                        tooltipFormat: 'DD.MM.YYYY HH:mm'
+                    },
                     title: {
                         display: true,
-                        text: 'Zeit'
+                        text: 'Zeit',
+                        color: '#e0e0e0',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    },
+                    ticks: {
+                        color: '#b0b0b0',
+                        maxRotation: 45,
+                        minRotation: 0,
+                        autoSkip: true,
+                        autoSkipPadding: 20,
+                        font: {
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
                     }
                 },
                 y: {
                     display: true,
                     title: {
                         display: true,
-                        text: 'Wert'
+                        text: 'Wert',
+                        color: '#e0e0e0',
+                        font: {
+                            size: 14,
+                            weight: 'bold'
+                        }
+                    },
+                    ticks: {
+                        color: '#b0b0b0',
+                        font: {
+                            size: 11
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
                     }
                 }
             }
@@ -280,42 +328,22 @@ async function loadHistoricalData() {
         
         // Temperatur-Diagramm aktualisieren
         if (data.temperature && data.temperature.length > 0) {
-            tempChart.data.labels = data.temperature.map(d => 
-                new Date(d.timestamp).toLocaleString('de-DE', { 
-                    month: '2-digit', 
-                    day: '2-digit', 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                })
-            );
+            // Direkt Zeitstempel als Date-Objekte verwenden (für time scale)
+            tempChart.data.labels = data.temperature.map(d => new Date(d.timestamp));
             tempChart.data.datasets[0].data = data.temperature.map(d => d.value);
             tempChart.update();
         }
         
         // Luftfeuchtigkeits-Diagramm aktualisieren
         if (data.humidity && data.humidity.length > 0) {
-            humidityChart.data.labels = data.humidity.map(d => 
-                new Date(d.timestamp).toLocaleString('de-DE', { 
-                    month: '2-digit', 
-                    day: '2-digit', 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                })
-            );
+            humidityChart.data.labels = data.humidity.map(d => new Date(d.timestamp));
             humidityChart.data.datasets[0].data = data.humidity.map(d => d.value);
             humidityChart.update();
         }
         
         // CO2-Diagramm aktualisieren
         if (data.co2 && data.co2.length > 0) {
-            co2Chart.data.labels = data.co2.map(d => 
-                new Date(d.timestamp).toLocaleString('de-DE', { 
-                    month: '2-digit', 
-                    day: '2-digit', 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                })
-            );
+            co2Chart.data.labels = data.co2.map(d => new Date(d.timestamp));
             co2Chart.data.datasets[0].data = data.co2.map(d => d.value);
             co2Chart.update();
         }
