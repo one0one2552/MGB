@@ -76,7 +76,9 @@ def get_status():
         scd30 = sensors['scd30']
         result = scd30.read_all()
         if result:
-            temp_value = result['temperature']
+            # Temperaturkorrektur anwenden
+            temp_offset = config['sensors']['temperature'].get('offset', 0.0)
+            temp_value = result['temperature'] + temp_offset
             humidity_value = result['humidity']
             co2_value = result['co2']
     
