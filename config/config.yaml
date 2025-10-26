@@ -31,6 +31,7 @@ actuators:
   pump:
     enabled: true
     pin: 17
+    inverted: false  # HIGH-Level-Trigger: HIGH = AN, LOW = AUS
     min_runtime: 5  # Sekunden
     max_runtime: 60  # Sekunden
     cooldown: 300  # Sekunden zwischen Aktivierungen
@@ -38,6 +39,7 @@ actuators:
   heater:
     enabled: true
     pin: 27
+    inverted: false  # HIGH-Level-Trigger: HIGH = AN, LOW = AUS
     max_temperature: 30.0  # Sicherheitsabschaltung
     
   fan:
