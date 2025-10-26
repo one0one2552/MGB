@@ -3,7 +3,6 @@ Relay-Aktor für Heizmatte und andere On/Off-Geräte
 """
 
 import logging
-import time
 from datetime import datetime
 from typing import Optional, Dict, Any
 from .base_actuator import BaseActuator
@@ -13,12 +12,11 @@ logger = logging.getLogger(__name__)
 
 class RelayActuator(BaseActuator):
     """
-    Steuert ein Relay-Modul (z.B. für Heizmatte, Pumpe, etc.)
+    Steuert ein Relay-Modul über GPIO
     
-    Relay-Modul hat:
-    - VCC: 5V oder 3.3V Spannungsversorgung
-    - GND: Masse
-    - Signal: GPIO Pin (LOW = aktiviert, HIGH = deaktiviert bei LOW-Level-Trigger)
+    Einfache Logik:
+    - GPIO HIGH = Relay AN
+    - GPIO LOW = Relay AUS
     """
     
     def __init__(self, name: str, pin: int, config: Dict[str, Any]):
@@ -33,12 +31,10 @@ class RelayActuator(BaseActuator):
         super().__init__(name, "relay")
         self.pin = pin
         self.config = config
-        self._gpio_available = False
         self._gpio = None
         self._mock_mode = False
         
         # Konfiguration
-        self.inverted = config.get('inverted', True)  # True = LOW-Level-Trigger (Standard)
         self.min_runtime = config.get('min_runtime', 0)  # Minimale Laufzeit in Sekunden
         self.max_runtime = config.get('max_runtime', 0)  # Maximale Laufzeit in Sekunden
         self.cooldown = config.get('cooldown', 0)  # Wartezeit zwischen Aktivierungen
@@ -59,41 +55,19 @@ class RelayActuator(BaseActuator):
         try:
             import RPi.GPIO as GPIO
             self._gpio = GPIO
-            self._gpio_available = True
             
             # GPIO Setup
             GPIO.setmode(GPIO.BCM)
             GPIO.setwarnings(False)
             
-            # Pin cleanup (falls vorher verwendet)
-            try:
-                GPIO.cleanup(self.pin)
-            except:
-                pass
+            # Pin als Output mit initial LOW (Relay AUS)
+            GPIO.setup(self.pin, GPIO.OUT, initial=GPIO.LOW)
             
-            # WICHTIG: Relay-Module sind extrem empfindlich auf Setup-Glitches!
-            # Strategie: Pin zuerst als INPUT mit Pull-Down, dann zu OUTPUT
-            
-            # Bei HIGH-Level-Trigger (inverted=False): LOW = AUS, also Pull-Down
-            # Bei LOW-Level-Trigger (inverted=True): HIGH = AUS, also Pull-Up
-            if self.inverted:
-                # LOW-Level-Trigger: HIGH = AUS
-                GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-                time.sleep(0.1)  # Kurz warten
-                GPIO.setup(self.pin, GPIO.OUT, initial=GPIO.HIGH)
-            else:
-                # HIGH-Level-Trigger: LOW = AUS
-                GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
-                time.sleep(0.1)  # Kurz warten
-                GPIO.setup(self.pin, GPIO.OUT, initial=GPIO.LOW)
-            
-            # Status setzen
             self.is_active = False
             self.is_available = True
             self._mock_mode = False
             
-            initial_state_name = "HIGH (AUS)" if self.inverted else "LOW (AUS)"
-            logger.info(f"✓ Relay '{self.name}' auf Pin {self.pin} initialisiert (inverted={self.inverted}, initial={initial_state_name})")
+            logger.info(f"✓ Relay '{self.name}' initialisiert auf GPIO Pin {self.pin}")
             return True
             
         except ImportError:
@@ -109,7 +83,7 @@ class RelayActuator(BaseActuator):
     
     def turn_on(self) -> bool:
         """
-        Schaltet das Relay ein (aktiviert Gerät)
+        Schaltet das Relay ein (GPIO HIGH)
         
         Returns:
             True bei Erfolg, False bei Fehler
@@ -130,17 +104,15 @@ class RelayActuator(BaseActuator):
                 self.last_state_change = datetime.now()
                 return True
             
-            if self._gpio_available and self._gpio:
-                # Bei inverted=True (LOW-Level-Trigger): LOW = AN
-                # Bei inverted=False (HIGH-Level-Trigger): HIGH = AN
-                state = self._gpio.LOW if self.inverted else self._gpio.HIGH
-                self._gpio.output(self.pin, state)
+            if self._gpio:
+                # GPIO HIGH = Relay AN
+                self._gpio.output(self.pin, self._gpio.HIGH)
                 
                 self.is_active = True
                 self.activation_start_time = datetime.now()
                 self.last_state_change = datetime.now()
                 
-                logger.info(f"✓ Relay '{self.name}' eingeschaltet (Pin {self.pin} = {'LOW' if state == self._gpio.LOW else 'HIGH'})")
+                logger.info(f"✓ Relay '{self.name}' eingeschaltet (Pin {self.pin} = HIGH)")
                 return True
             
             return False
@@ -151,7 +123,7 @@ class RelayActuator(BaseActuator):
     
     def turn_off(self) -> bool:
         """
-        Schaltet das Relay aus (deaktiviert Gerät)
+        Schaltet das Relay aus (GPIO LOW)
         
         Returns:
             True bei Erfolg, False bei Fehler
@@ -174,11 +146,9 @@ class RelayActuator(BaseActuator):
                 self.last_state_change = datetime.now()
                 return True
             
-            if self._gpio_available and self._gpio:
-                # Bei inverted=True (LOW-Level-Trigger): HIGH = AUS
-                # Bei inverted=False (HIGH-Level-Trigger): LOW = AUS
-                state = self._gpio.HIGH if self.inverted else self._gpio.LOW
-                self._gpio.output(self.pin, state)
+            if self._gpio:
+                # GPIO LOW = Relay AUS
+                self._gpio.output(self.pin, self._gpio.LOW)
                 
                 self.is_active = False
                 if self.activation_start_time:
@@ -186,7 +156,7 @@ class RelayActuator(BaseActuator):
                 self.activation_start_time = None
                 self.last_state_change = datetime.now()
                 
-                logger.info(f"✓ Relay '{self.name}' ausgeschaltet (Pin {self.pin} = {'LOW' if state == self._gpio.LOW else 'HIGH'})")
+                logger.info(f"✓ Relay '{self.name}' ausgeschaltet (Pin {self.pin} = LOW)")
                 return True
             
             return False
@@ -239,7 +209,6 @@ class RelayActuator(BaseActuator):
         status = super().get_status()
         status.update({
             'pin': self.pin,
-            'inverted': self.inverted,
             'mock_mode': self._mock_mode,
             'runtime': self.get_runtime(),
             'min_runtime': self.min_runtime,
@@ -253,7 +222,7 @@ class RelayActuator(BaseActuator):
         Räumt GPIO-Ressourcen auf
         """
         try:
-            if self._gpio_available and self._gpio:
+            if self._gpio and not self._mock_mode:
                 self.turn_off()
                 self._gpio.cleanup(self.pin)
                 logger.info(f"✓ GPIO Pin {self.pin} cleanup")
