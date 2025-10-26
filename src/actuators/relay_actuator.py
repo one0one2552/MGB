@@ -3,6 +3,7 @@ Relay-Aktor für Heizmatte und andere On/Off-Geräte
 """
 
 import logging
+import time
 from datetime import datetime
 from typing import Optional, Dict, Any
 from .base_actuator import BaseActuator
@@ -70,17 +71,29 @@ class RelayActuator(BaseActuator):
             except:
                 pass
             
-            # Pin als Output konfigurieren - WICHTIG: Mit initial state!
-            # Das verhindert dass der Pin beim Setup in undefined state geht
-            initial_state = GPIO.HIGH if self.inverted else GPIO.LOW
-            GPIO.setup(self.pin, GPIO.OUT, initial=initial_state)
+            # WICHTIG: Relay-Module sind extrem empfindlich auf Setup-Glitches!
+            # Strategie: Pin zuerst als INPUT mit Pull-Down, dann zu OUTPUT
+            
+            # Bei HIGH-Level-Trigger (inverted=False): LOW = AUS, also Pull-Down
+            # Bei LOW-Level-Trigger (inverted=True): HIGH = AUS, also Pull-Up
+            if self.inverted:
+                # LOW-Level-Trigger: HIGH = AUS
+                GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+                time.sleep(0.1)  # Kurz warten
+                GPIO.setup(self.pin, GPIO.OUT, initial=GPIO.HIGH)
+            else:
+                # HIGH-Level-Trigger: LOW = AUS
+                GPIO.setup(self.pin, GPIO.IN, pull_up_down=GPIO.PUD_DOWN)
+                time.sleep(0.1)  # Kurz warten
+                GPIO.setup(self.pin, GPIO.OUT, initial=GPIO.LOW)
             
             # Status setzen
             self.is_active = False
             self.is_available = True
             self._mock_mode = False
             
-            logger.info(f"✓ Relay '{self.name}' auf Pin {self.pin} initialisiert (inverted={self.inverted}, initial={'HIGH' if initial_state == GPIO.HIGH else 'LOW'})")
+            initial_state_name = "HIGH (AUS)" if self.inverted else "LOW (AUS)"
+            logger.info(f"✓ Relay '{self.name}' auf Pin {self.pin} initialisiert (inverted={self.inverted}, initial={initial_state_name})")
             return True
             
         except ImportError:
