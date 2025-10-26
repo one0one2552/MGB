@@ -70,15 +70,12 @@ class RelayActuator(BaseActuator):
             except:
                 pass
             
-            # Pin als Output konfigurieren
-            GPIO.setup(self.pin, GPIO.OUT)
-            
-            # Initial AUSGESCHALTET - SOFORT setzen!
-            # Bei inverted=True (LOW-Level-Trigger): HIGH = AUS, LOW = AN
-            # Bei inverted=False (HIGH-Level-Trigger): LOW = AUS, HIGH = AN
+            # Pin als Output konfigurieren - WICHTIG: Mit initial state!
+            # Das verhindert dass der Pin beim Setup in undefined state geht
             initial_state = GPIO.HIGH if self.inverted else GPIO.LOW
-            GPIO.output(self.pin, initial_state)
+            GPIO.setup(self.pin, GPIO.OUT, initial=initial_state)
             
+            # Status setzen
             self.is_active = False
             self.is_available = True
             self._mock_mode = False

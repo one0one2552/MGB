@@ -24,9 +24,10 @@ def main():
         GPIO.cleanup(PIN)
         time.sleep(0.5)
         
-        # Jetzt als Output konfigurieren
-        GPIO.setup(PIN, GPIO.OUT)
-        print(f"2. Pin {PIN} als OUTPUT konfiguriert")
+        # Jetzt als Output konfigurieren - WICHTIG: Mit initial=GPIO.HIGH!
+        # Das verhindert dass der Pin beim Setup kurz auf LOW geht
+        GPIO.setup(PIN, GPIO.OUT, initial=GPIO.HIGH)
+        print(f"2. Pin {PIN} als OUTPUT konfiguriert (initial=HIGH)")
         
         # HIGH setzen (sollte Relay AUSSCHALTEN bei LOW-Level-Trigger)
         print(f"\n3. Setze Pin {PIN} auf HIGH (Relay sollte AUS sein)")
