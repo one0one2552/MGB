@@ -117,8 +117,8 @@ function updateSensor(sensorId, sensorData) {
         statusElement.className = `sensor-status ${sensorData.status}`;
         statusElement.textContent = getStatusText(sensorData.status);
         
-        // Diagramm aktualisieren
-        updateChart(sensorId, sensorData.value);
+        // KEIN Live-Update für historische Charts mehr!
+        // Charts werden nur bei Seitenladen oder Zeitbereichsänderung aktualisiert
     }
 }
 
