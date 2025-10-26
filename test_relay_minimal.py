@@ -1,20 +1,11 @@
 import RPi.GPIO as GPIO
 import time
 
-# GPIO-Modus (BCM)
 GPIO.setmode(GPIO.BCM)
+GPIO.setup(27, GPIO.OUT, initial=GPIO.LOW)  # Test mit LOW
 
-# GPIO 27 als Ausgang festlegen
-GPIO.setup(27, GPIO.OUT)
+time.sleep(5)
+GPIO.output(27, GPIO.HIGH)  # Umschalten auf HIGH
+time.sleep(5)
 
-try:
-    while True:
-        time.sleep(10000)
-        GPIO.output(27, GPIO.HIGH)  # Einschalten
-        time.sleep(100)               # 1 Sekunde warten
-        GPIO.output(27, GPIO.LOW)   # Ausschalten
-        time.sleep(100)               # 1 Sekunde warten
-except KeyboardInterrupt:
-    print("Beende das Programm…")
-finally:
-    GPIO.cleanup()  # GPIO-Zustand zurücksetzen
+GPIO.cleanup()
