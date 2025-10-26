@@ -53,7 +53,7 @@ def signal_handler(signum, frame):
     stop_event.set()
 
 
-def monitoring_loop(config: dict, data_logger: DataLogger, sensors: dict):
+def monitoring_loop(config: dict, data_logger: DataLogger, sensors: dict, actuators: dict, controllers: dict):
     """
     Hauptschleife für Überwachung und Regelung
     
@@ -61,6 +61,8 @@ def monitoring_loop(config: dict, data_logger: DataLogger, sensors: dict):
         config: Konfiguration
         data_logger: DataLogger-Instanz
         sensors: Dictionary mit Sensor-Instanzen
+        actuators: Dictionary mit Aktor-Instanzen
+        controllers: Dictionary mit PID-Controller-Instanzen
     """
     interval = config['measurement']['interval']
     logger.info(f"Starte Monitoring-Loop (Intervall: {interval}s)")
@@ -83,9 +85,28 @@ def monitoring_loop(config: dict, data_logger: DataLogger, sensors: dict):
                     data_logger.log_sensor_data('temperature', temperature, '°C')
                     data_logger.log_sensor_data('humidity', humidity, '%')
                     data_logger.log_sensor_data('co2', co2, 'ppm')
-            
-            # TODO: Regelung durchführen
-            # TODO: Aktoren steuern
+                    
+                    # Temperatur-Regelung mit PID
+                    if 'temperature' in controllers and 'heater' in actuators:
+                        temp_controller = controllers['temperature']
+                        heater = actuators['heater']
+                        
+                        # Zielwert aus Konfiguration holen
+                        target_temp = config['sensors']['temperature']['target_value']
+                        
+                        # PID-Berechnung
+                        control_output = temp_controller.compute(temperature, target_temp)
+                        
+                        # Heizung steuern (nur wenn nicht manuell gesteuert)
+                        # Control output > 0 = heizen erforderlich
+                        if control_output > 0:
+                            if not heater.is_active:
+                                heater.turn_on()
+                                logger.info(f"🔥 Heizung AN (Temp: {temperature}°C, Ziel: {target_temp}°C, PID: {control_output:.2f})")
+                        else:
+                            if heater.is_active:
+                                heater.turn_off()
+                                logger.info(f"❄️  Heizung AUS (Temp: {temperature}°C, Ziel: {target_temp}°C, PID: {control_output:.2f})")
             
             # Auf nächsten Zyklus warten
             stop_event.wait(interval)
@@ -227,6 +248,40 @@ def main():
     except Exception as e:
         logger.error(f"✗ Fehler beim Initialisieren der Aktoren: {e}", exc_info=True)
     
+    # PID-Controller initialisieren
+    logger.info("Initialisiere PID-Controller...")
+    controllers = {}
+    
+    try:
+        from controllers.pid_controller import PIDController
+        
+        # Temperatur-Controller
+        pid_config = config.get('pid', {})
+        temp_pid_config = pid_config.get('temperature', {})
+        
+        temp_controller = PIDController(
+            kp=temp_pid_config.get('kp', 2.0),
+            ki=temp_pid_config.get('ki', 0.5),
+            kd=temp_pid_config.get('kd', 1.0),
+            setpoint=config['sensors']['temperature']['target_value'],
+            output_limits=(0, 100),
+            sample_time=config['measurement']['interval']
+        )
+        
+        # Adaptive PID aktivieren falls konfiguriert
+        if pid_config.get('adaptive', True):
+            temp_controller.enable_adaptive_tuning(
+                learning_rate=pid_config.get('learning_rate', 0.01)
+            )
+            logger.info("✓ Temperatur-PID-Controller initialisiert (Adaptive Regelung AN)")
+        else:
+            logger.info("✓ Temperatur-PID-Controller initialisiert (Manuelle Parameter)")
+        
+        controllers['temperature'] = temp_controller
+        
+    except Exception as e:
+        logger.error(f"✗ Fehler beim Initialisieren der PID-Controller: {e}", exc_info=True)
+    
     # Webserver in separatem Thread starten
     web_thread = Thread(target=start_web_server, args=(config, sensors, actuators), daemon=True)
     web_thread.start()
@@ -234,7 +289,7 @@ def main():
     
     # Monitoring-Loop starten
     try:
-        monitoring_loop(config, data_logger, sensors)
+        monitoring_loop(config, data_logger, sensors, actuators, controllers)
     except Exception as e:
         logger.error(f"Kritischer Fehler: {e}", exc_info=True)
     finally:
