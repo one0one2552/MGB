@@ -94,8 +94,8 @@ def monitoring_loop(config: dict, data_logger: DataLogger, sensors: dict, actuat
                         # Zielwert aus Konfiguration holen
                         target_temp = config['sensors']['temperature']['target_value']
                         
-                        # PID-Berechnung
-                        control_output = temp_controller.compute(temperature, target_temp)
+                        # PID-Berechnung (update verwendet den gespeicherten setpoint)
+                        control_output = temp_controller.update(temperature)
                         
                         # Heizung steuern (nur wenn nicht manuell gesteuert)
                         # Control output > 0 = heizen erforderlich
@@ -264,15 +264,14 @@ def main():
             ki=temp_pid_config.get('ki', 0.5),
             kd=temp_pid_config.get('kd', 1.0),
             setpoint=config['sensors']['temperature']['target_value'],
-            output_limits=(0, 100),
-            sample_time=config['measurement']['interval']
+            output_min=0.0,
+            output_max=100.0,
+            adaptive=pid_config.get('adaptive', True),
+            learning_rate=pid_config.get('learning_rate', 0.01)
         )
         
-        # Adaptive PID aktivieren falls konfiguriert
+        # Log-Ausgabe
         if pid_config.get('adaptive', True):
-            temp_controller.enable_adaptive_tuning(
-                learning_rate=pid_config.get('learning_rate', 0.01)
-            )
             logger.info("✓ Temperatur-PID-Controller initialisiert (Adaptive Regelung AN)")
         else:
             logger.info("✓ Temperatur-PID-Controller initialisiert (Manuelle Parameter)")
