@@ -56,8 +56,13 @@ class RelayActuator(BaseActuator):
             import RPi.GPIO as GPIO
             self._gpio = GPIO
             
-            # GPIO Setup
-            GPIO.setmode(GPIO.BCM)
+            # GPIO Mode nur setzen wenn noch nicht gesetzt
+            # (vermeidet Probleme bei mehreren Relays)
+            try:
+                GPIO.setmode(GPIO.BCM)
+            except:
+                pass  # Mode ist schon gesetzt
+            
             GPIO.setwarnings(False)
             
             # Pin als Output mit initial LOW (Relay AUS)
