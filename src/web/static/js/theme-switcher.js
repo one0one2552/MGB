@@ -5,17 +5,12 @@
 
 class ThemeSwitcher {
     constructor() {
-        this.currentTheme = this.loadTheme();
+        this.currentTheme = 'dark'; // Nur Dark Theme
         this.themes = {
             dark: {
                 name: 'Dark',
                 icon: '🌙',
                 cssFile: '/static/css/theme-dark.css'
-            },
-            psychedelic: {
-                name: 'Psychedelic',
-                icon: '🌈',
-                cssFile: '/static/css/theme-psychedelic.css'
             }
         };
         this.init();
@@ -57,64 +52,11 @@ class ThemeSwitcher {
     }
 
     /**
-     * Setup theme switcher UI
+     * Setup theme switcher UI - Deaktiviert, da nur Dark Theme verfügbar
      */
     setupThemeSwitcher() {
-        const header = document.querySelector('header');
-        if (!header) return;
-
-        // Create theme switcher container
-        const themeSwitcher = document.createElement('div');
-        themeSwitcher.className = 'theme-switcher';
-        themeSwitcher.innerHTML = `
-            <button class="theme-btn" id="themeBtn">
-                <span class="theme-icon">${this.themes[this.currentTheme].icon}</span>
-                <span class="theme-name">${this.themes[this.currentTheme].name}</span>
-            </button>
-            <div class="theme-dropdown" id="themeDropdown" style="display: none;">
-                ${Object.entries(this.themes).map(([key, info]) => `
-                    <button class="theme-option" data-theme="${key}">
-                        <span class="theme-icon">${info.icon}</span>
-                        <span class="theme-name">${info.name}</span>
-                    </button>
-                `).join('')}
-            </div>
-        `;
-
-        // Find or create controls container
-        let controlsContainer = header.querySelector('.header-controls');
-        if (!controlsContainer) {
-            controlsContainer = document.createElement('div');
-            controlsContainer.className = 'header-controls';
-            header.appendChild(controlsContainer);
-        }
-        
-        controlsContainer.insertBefore(themeSwitcher, controlsContainer.firstChild);
-
-        // Add event listeners
-        const themeBtn = document.getElementById('themeBtn');
-        const themeDropdown = document.getElementById('themeDropdown');
-
-        themeBtn.addEventListener('click', () => {
-            themeDropdown.style.display = themeDropdown.style.display === 'none' ? 'block' : 'none';
-        });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!themeSwitcher.contains(e.target)) {
-                themeDropdown.style.display = 'none';
-            }
-        });
-
-        // Theme selection
-        themeSwitcher.querySelectorAll('.theme-option').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const theme = btn.getAttribute('data-theme');
-                this.changeTheme(theme);
-                themeDropdown.style.display = 'none';
-            });
-        });
+        // Theme-Switcher nicht mehr benötigt - nur Dark Theme
+        return;
     }
 
     /**
