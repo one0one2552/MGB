@@ -140,46 +140,98 @@ def get_history():
     end_time = datetime.now()
     start_time = end_time - timedelta(hours=hours)
     
-    # Daten aus DB holen
-    all_data = data_logger.get_sensor_data(limit=10000)  # Große Anzahl für Zeitbereich
+    # Intervall für Datenpunkte bestimmen (in Sekunden)
+    # Ziel: ca. 100-200 Datenpunkte für optimale Chart-Darstellung
+    if hours <= 1:
+        interval_seconds = 60  # 1 Stunde: alle 60s = ~60 Punkte
+    elif hours <= 12:
+        interval_seconds = 300  # 12 Stunden: alle 5min = ~144 Punkte
+    elif hours <= 24:
+        interval_seconds = 600  # 24 Stunden: alle 10min = ~144 Punkte
+    elif hours <= 168:  # 1 Woche
+        interval_seconds = 3600  # 1 Woche: alle 60min = ~168 Punkte
+    else:  # 1 Monat
+        interval_seconds = 7200  # 1 Monat: alle 2h = ~360 Punkte
     
-    # Nach Zeitbereich filtern und nach Sensor gruppieren
-    temperature_data = []
-    humidity_data = []
-    co2_data = []
+    # Daten aus DB holen mit Zeitfilter
+    all_data = data_logger.get_sensor_data(
+        limit=10000, 
+        start_time=start_time, 
+        end_time=end_time
+    )
+    
+    # Nach Sensor gruppieren und nach Zeitstempel sortieren
+    sensor_data = {
+        'temperature': [],
+        'humidity': [],
+        'co2': []
+    }
     
     for record in all_data:
         try:
-            timestamp = datetime.fromisoformat(record['timestamp'])
-            
-            # Nur Daten im Zeitbereich
-            if timestamp < start_time:
-                continue
-            
-            # Nach Sensor gruppieren
             if record['sensor_name'] == 'temperature':
-                temperature_data.append({
-                    'timestamp': record['timestamp'],
+                sensor_data['temperature'].append({
+                    'timestamp': datetime.fromisoformat(record['timestamp']),
                     'value': record['value']
                 })
             elif record['sensor_name'] == 'humidity':
-                humidity_data.append({
-                    'timestamp': record['timestamp'],
+                sensor_data['humidity'].append({
+                    'timestamp': datetime.fromisoformat(record['timestamp']),
                     'value': record['value']
                 })
             elif record['sensor_name'] == 'co2':
-                co2_data.append({
-                    'timestamp': record['timestamp'],
+                sensor_data['co2'].append({
+                    'timestamp': datetime.fromisoformat(record['timestamp']),
                     'value': record['value']
                 })
         except Exception as e:
             logger.error(f"Fehler beim Verarbeiten von Datensatz: {e}")
             continue
     
-    # Sortieren nach Zeitstempel (älteste zuerst für Chart.js)
-    temperature_data.reverse()
-    humidity_data.reverse()
-    co2_data.reverse()
+    # Daten nach Zeitstempel sortieren (älteste zuerst)
+    for sensor_name in sensor_data:
+        sensor_data[sensor_name].sort(key=lambda x: x['timestamp'])
+    
+    # Daten reduzieren basierend auf Intervall
+    def reduce_data(data, interval_seconds):
+        """Reduziert Datenpunkte basierend auf Zeitintervall"""
+        if not data:
+            return []
+        
+        reduced = []
+        last_timestamp = None
+        
+        for point in data:
+            # Ersten Punkt immer nehmen
+            if last_timestamp is None:
+                reduced.append({
+                    'timestamp': point['timestamp'].isoformat(),
+                    'value': point['value']
+                })
+                last_timestamp = point['timestamp']
+            else:
+                # Nur Punkte nehmen, die mindestens interval_seconds auseinander liegen
+                time_diff = (point['timestamp'] - last_timestamp).total_seconds()
+                if time_diff >= interval_seconds:
+                    reduced.append({
+                        'timestamp': point['timestamp'].isoformat(),
+                        'value': point['value']
+                    })
+                    last_timestamp = point['timestamp']
+        
+        # Letzten Punkt immer nehmen (wenn nicht schon vorhanden)
+        if data and (not reduced or reduced[-1]['timestamp'] != data[-1]['timestamp'].isoformat()):
+            reduced.append({
+                'timestamp': data[-1]['timestamp'].isoformat(),
+                'value': data[-1]['value']
+            })
+        
+        return reduced
+    
+    # Daten für jeden Sensor reduzieren
+    temperature_data = reduce_data(sensor_data['temperature'], interval_seconds)
+    humidity_data = reduce_data(sensor_data['humidity'], interval_seconds)
+    co2_data = reduce_data(sensor_data['co2'], interval_seconds)
     
     return jsonify({
         'temperature': temperature_data,
@@ -188,7 +240,8 @@ def get_history():
         'timeRange': {
             'start': start_time.isoformat(),
             'end': end_time.isoformat(),
-            'hours': hours
+            'hours': hours,
+            'interval_seconds': interval_seconds
         }
     })
 
