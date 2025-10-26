@@ -1,34 +1,19 @@
-#!/usr/bin/env python3
-"""
-Minimal Relay Test - nur HIGH setzen
-"""
 import RPi.GPIO as GPIO
 import time
 
-PIN = 27  # Dein GPIO Pin
-
-print("=== MINIMAL TEST ===")
-print(f"Pin: GPIO {PIN}")
-print()
-
-# BCM Mode
+# GPIO-Modus (BCM)
 GPIO.setmode(GPIO.BCM)
-GPIO.setwarnings(False)
 
-print("1. Setup Pin als OUTPUT mit initial=HIGH...")
-GPIO.setup(PIN, GPIO.OUT, initial=GPIO.HIGH)
-print(f"   → Pin sollte HIGH sein = Relay AUS")
-print()
+# GPIO 27 als Ausgang festlegen
+GPIO.setup(27, GPIO.OUT)
 
-# 10 Sekunden warten
-for i in range(10, 0, -1):
-    print(f"   Warte {i} Sekunden... (Relay sollte AUS bleiben)")
-    time.sleep(1)
-
-print()
-print("✓ Test beendet - Relay sollte die ganze Zeit AUS gewesen sein")
-print()
-
-# Cleanup
-GPIO.cleanup()
-print("✓ GPIO cleanup")
+try:
+    while True:
+        GPIO.output(27, GPIO.HIGH)  # Einschalten
+        time.sleep(1)               # 1 Sekunde warten
+        GPIO.output(27, GPIO.LOW)   # Ausschalten
+        time.sleep(1)               # 1 Sekunde warten
+except KeyboardInterrupt:
+    print("Beende das Programm…")
+finally:
+    GPIO.cleanup()  # GPIO-Zustand zurücksetzen
