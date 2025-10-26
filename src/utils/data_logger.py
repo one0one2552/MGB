@@ -163,8 +163,13 @@ class DataLogger:
                 query += ' AND timestamp <= ?'
                 params.append(end_time.isoformat())
             
-            query += ' ORDER BY timestamp DESC LIMIT ?'
-            params.append(limit)
+            # Erst nach Zeitstempel sortieren, dann limitieren
+            query += ' ORDER BY timestamp ASC'
+            
+            # Limit nur anwenden wenn keine Zeitfilter gesetzt sind
+            if not start_time and not end_time:
+                query += ' LIMIT ?'
+                params.append(limit)
             
             cursor.execute(query, params)
             
