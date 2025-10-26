@@ -607,6 +607,13 @@
     </div>
     
     <script>
+        // Theme beim Laden der Seite anwenden
+        (function() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.body.className = savedTheme + '-theme';
+            console.log('Theme geladen:', savedTheme);
+        })();
+        
         // Toggle manuelle PID-Einstellungen
         document.getElementById('adaptive_pid').addEventListener('change', function(e) {
             const manualSettings = document.getElementById('manual-pid-settings');
