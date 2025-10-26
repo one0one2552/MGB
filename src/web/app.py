@@ -41,6 +41,9 @@ wifi_manager = WiFiManager(
 )
 init_wifi_manager(wifi_manager)
 
+# Globale Variable für Sensoren (wird von main.py gesetzt)
+sensors = {}
+
 
 @app.route('/')
 def index():
@@ -63,23 +66,33 @@ def get_status():
     """
     API-Endpunkt für den aktuellen Status
     """
-    # TODO: Echte Daten von Sensoren und Aktoren holen
+    # Echte Daten von SCD30 Sensor holen (wenn verfügbar)
+    temp_value = 22.5
+    humidity_value = 87.3
+    co2_value = 850
+    
+    if 'scd30' in sensors:
+        scd30 = sensors['scd30']
+        result = scd30.read_all()
+        if result:
+            temp_value, humidity_value, co2_value = result
+    
     status = {
         'sensors': {
             'temperature': {
-                'value': 22.5,
+                'value': temp_value,
                 'unit': '°C',
                 'target': config['sensors']['temperature']['target_value'],
                 'status': 'ok'
             },
             'humidity': {
-                'value': 87.3,
+                'value': humidity_value,
                 'unit': '%',
                 'target': config['sensors']['humidity']['target_value'],
                 'status': 'ok'
             },
             'co2': {
-                'value': 850,
+                'value': co2_value,
                 'unit': 'ppm',
                 'target': config['sensors']['co2']['target_value'],
                 'status': 'ok'
