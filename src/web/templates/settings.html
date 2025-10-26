@@ -966,15 +966,6 @@
                     kd: parseFloat(formData.get('pid_co2_kd'))
                 };
             }
-                schedule: {
-                    day_start: formData.get('day_start'),
-                    night_start: formData.get('night_start'),
-                    day_temperature: parseFloat(formData.get('day_temperature')),
-                    night_temperature: parseFloat(formData.get('night_temperature')),
-                    day_humidity: parseFloat(formData.get('day_humidity')),
-                    night_humidity: parseFloat(formData.get('night_humidity'))
-                }
-            };
             
             try {
                 const response = await fetch('/api/settings', {
