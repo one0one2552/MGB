@@ -37,7 +37,15 @@ sudo apt update
 sudo apt upgrade -y
 ```
 
-### 1.4 I2C aktivieren (für SCD30 Sensor)
+### 1.4 Git installieren
+
+```bash
+sudo apt install git -y
+git --version
+# Sollte git version 2.x.x anzeigen
+```
+
+### 1.5 I2C aktivieren (für SCD30 Sensor)
 
 ```bash
 sudo raspi-config
@@ -90,11 +98,19 @@ cd MGB
 
 ### 3.2 Python-Pakete installieren
 
-**System-weit (für GPIO-Zugriff mit sudo):**
+**Für Raspberry Pi OS Bookworm (ab 2024) oder neuere Systeme:**
+
+```bash
+sudo pip3 install -r requirements.txt --break-system-packages
+```
+
+**Für ältere Systeme (ohne externally-managed-environment):**
 
 ```bash
 sudo pip3 install -r requirements.txt
 ```
+
+**⚠️ Hinweis:** Das `--break-system-packages` Flag ist nötig auf neueren Raspberry Pi OS Versionen und ist hier unbedenklich, da wir GPIO-Zugriff mit sudo benötigen.
 
 **Wichtige Pakete:**
 - Flask, Flask-SocketIO (Webserver)
