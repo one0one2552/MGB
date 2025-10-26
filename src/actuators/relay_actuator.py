@@ -67,15 +67,17 @@ class RelayActuator(BaseActuator):
             # Pin als Output konfigurieren
             GPIO.setup(self.pin, GPIO.OUT)
             
-            # Initial ausgeschaltet
-            initial_state = GPIO.LOW if self.inverted else GPIO.HIGH
+            # Initial AUSGESCHALTET
+            # Bei inverted=True (LOW-Level-Trigger): HIGH = AUS, LOW = AN
+            # Bei inverted=False (HIGH-Level-Trigger): LOW = AUS, HIGH = AN
+            initial_state = GPIO.HIGH if self.inverted else GPIO.LOW
             GPIO.output(self.pin, initial_state)
             
             self.is_active = False
             self.is_available = True
             self._mock_mode = False
             
-            logger.info(f"✓ Relay '{self.name}' auf Pin {self.pin} initialisiert (inverted={self.inverted})")
+            logger.info(f"✓ Relay '{self.name}' auf Pin {self.pin} initialisiert (inverted={self.inverted}, initial={initial_state})")
             return True
             
         except ImportError:
@@ -113,7 +115,8 @@ class RelayActuator(BaseActuator):
                 return True
             
             if self._gpio_available and self._gpio:
-                # LOW aktiviert bei inverted (Standard), HIGH bei nicht-inverted
+                # Bei inverted=True (LOW-Level-Trigger): LOW = AN
+                # Bei inverted=False (HIGH-Level-Trigger): HIGH = AN
                 state = self._gpio.LOW if self.inverted else self._gpio.HIGH
                 self._gpio.output(self.pin, state)
                 
@@ -121,7 +124,7 @@ class RelayActuator(BaseActuator):
                 self.activation_start_time = datetime.now()
                 self.last_state_change = datetime.now()
                 
-                logger.info(f"✓ Relay '{self.name}' eingeschaltet (Pin {self.pin} = {state})")
+                logger.info(f"✓ Relay '{self.name}' eingeschaltet (Pin {self.pin} = {'LOW' if state == self._gpio.LOW else 'HIGH'})")
                 return True
             
             return False
@@ -156,7 +159,8 @@ class RelayActuator(BaseActuator):
                 return True
             
             if self._gpio_available and self._gpio:
-                # HIGH deaktiviert bei inverted (Standard), LOW bei nicht-inverted
+                # Bei inverted=True (LOW-Level-Trigger): HIGH = AUS
+                # Bei inverted=False (HIGH-Level-Trigger): LOW = AUS
                 state = self._gpio.HIGH if self.inverted else self._gpio.LOW
                 self._gpio.output(self.pin, state)
                 
@@ -166,7 +170,7 @@ class RelayActuator(BaseActuator):
                 self.activation_start_time = None
                 self.last_state_change = datetime.now()
                 
-                logger.info(f"✓ Relay '{self.name}' ausgeschaltet (Pin {self.pin} = {state})")
+                logger.info(f"✓ Relay '{self.name}' ausgeschaltet (Pin {self.pin} = {'LOW' if state == self._gpio.LOW else 'HIGH'})")
                 return True
             
             return False
