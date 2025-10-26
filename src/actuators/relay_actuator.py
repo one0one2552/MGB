@@ -65,6 +65,13 @@ class RelayActuator(BaseActuator):
             
             GPIO.setwarnings(False)
             
+            # WICHTIG: Pin cleanup BEVOR wir ihn neu konfigurieren
+            # Das verhindert "channel already in use" Fehler
+            try:
+                GPIO.cleanup(self.pin)
+            except:
+                pass
+            
             # Pin als Output mit initial LOW (Relay AUS)
             GPIO.setup(self.pin, GPIO.OUT, initial=GPIO.LOW)
             
