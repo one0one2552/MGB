@@ -43,7 +43,41 @@ This system continuously monitors environmental parameters (CO2, temperature, hu
 - **Web Framework:** Flask with SocketIO
 - **Frontend:** HTML5, CSS3, JavaScript, Chart.js
 - **Database:** SQLite
-- **Hardware:** Raspberry Pi (recommended)
+- **Hardware:** Raspberry Pi with GPIO
+
+## 🔌 Hardware Setup
+
+### Required Components
+
+- **Raspberry Pi** (tested with Pi 3/4/5)
+- **SCD30 Sensor** (CO2, Temperature, Humidity)
+  - I2C connection (default address: 0x61)
+- **Relay Module** (3.3V compatible, HIGH-Level-Trigger)
+  - GPIO 27: Heating mat control
+  - GPIO 17: Pump control
+- **Actuators:**
+  - Heating mat
+  - Water pump with spray nozzles
+  - Fan (optional)
+
+### GPIO Pin Assignment
+
+| Component | GPIO Pin (BCM) | Physical Pin |
+|-----------|----------------|--------------|
+| SCD30 SDA | GPIO 2 | Pin 3 |
+| SCD30 SCL | GPIO 3 | Pin 5 |
+| Heater Relay | GPIO 27 | Pin 13 |
+| Pump Relay | GPIO 17 | Pin 11 |
+| Fan PWM | GPIO 22 | Pin 15 |
+
+### Relay Module
+
+- **Type:** HIGH-Level-Trigger (3.3V compatible)
+- **Logic:** HIGH = ON, LOW = OFF
+- **Connections:**
+  - VCC → 5V (Pin 2 or 4)
+  - GND → GND (Pin 6, 9, 14, 20, 25, 30, 34, or 39)
+  - Signal → GPIO pin (see table above)
 
 ## 📦 Installation
 
@@ -60,20 +94,25 @@ git clone https://github.com/one0one2552/MGB.git
 cd MGB
 ```
 
-### Step 2: Create Virtual Environment (recommended)
+### Step 2: Install Dependencies
+
+**For Raspberry Pi (with GPIO access):**
 
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# System-wide installation (required for GPIO/sudo access)
+sudo pip3 install -r requirements.txt
 ```
 
-### Step 3: Install Dependencies
+**For development/testing (without hardware):**
 
 ```bash
+# Virtual environment (optional)
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Step 4: Adjust Configuration
+### Step 3: Adjust Configuration
 
 Edit `config/config.yaml` and adjust the values to your hardware:
 
@@ -91,17 +130,23 @@ sensors:
 
 ## 🚀 Start
 
-### Development Mode
+### On Raspberry Pi (with Hardware)
 
 ```bash
-python src/main.py
+sudo python3 src/main.py
 ```
 
-The web server starts by default on `http://localhost:5000`
+The web server starts on `http://raspberry-pi-ip:5000`
 
-### Production Mode (Raspberry Pi)
+**Note:** `sudo` is required for GPIO access.
 
-For automatic startup on boot, see full documentation.
+### Development Mode (Mock Sensors)
+
+```bash
+python3 src/main.py
+```
+
+Runs with simulated sensor data for testing without hardware.
 
 ## 📁 Project Structure
 
