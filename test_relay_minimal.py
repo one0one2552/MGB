@@ -8,4 +8,12 @@ time.sleep(5)
 GPIO.output(27, GPIO.HIGH)  # Umschalten auf HIGH
 time.sleep(5)
 
+time.sleep(5)
+GPIO.output(27, GPIO.LOW)  # Umschalten auf HIGH
+time.sleep(5)
+
+time.sleep(5)
+GPIO.output(27, GPIO.HIGH)  # Umschalten auf HIGH
+time.sleep(5)
+
 GPIO.cleanup()
