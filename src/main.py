@@ -80,9 +80,9 @@ def monitoring_loop(config: dict, data_logger: DataLogger, sensors: dict):
                     logger.info(f"SCD30: Temp={temperature}°C, Humidity={humidity}%, CO2={co2}ppm")
                     
                     # Daten loggen
-                    data_logger.log_measurement('temperature', temperature)
-                    data_logger.log_measurement('humidity', humidity)
-                    data_logger.log_measurement('co2', co2)
+                    data_logger.log_sensor_data('temperature', temperature, '°C')
+                    data_logger.log_sensor_data('humidity', humidity, '%')
+                    data_logger.log_sensor_data('co2', co2, 'ppm')
             
             # TODO: Regelung durchführen
             # TODO: Aktoren steuern
