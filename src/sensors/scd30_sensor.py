@@ -1,263 +1,207 @@
 """
-SCD30 Sensor für Temperatur, Luftfeuchtigkeit und CO2-Messung
+SCD30 CO2, Temperature and Humidity Sensor
+Sensirion SCD30 - NDIR CO2 Sensor with integrated temperature and humidity sensor
 """
 
 import time
-from typing import Optional, Dict, Any, Tuple
+import logging
+from typing import Optional, Dict, Any
 from .base_sensor import BaseSensor
 
+# Hardware-Imports
 try:
     import board
+    import busio
     import adafruit_scd30
-    MOCK_MODE = False
-except (ImportError, NotImplementedError):
-    MOCK_MODE = True
-    print("⚠️  SCD30-Bibliotheken nicht verfügbar - verwende Mock-Modus für Entwicklung")
+    HARDWARE_AVAILABLE = True
+    print("✓ SCD30 Hardware-Bibliotheken geladen")
+except (ImportError, NotImplementedError, RuntimeError) as e:
+    HARDWARE_AVAILABLE = False
+    print(f"⚠️  SCD30 Hardware nicht verfügbar: {e}")
+
+logger = logging.getLogger(__name__)
 
 
-class SCD30Sensor:
-    """
-    SCD30 Sensor für kombinierte Messungen von Temperatur, Luftfeuchtigkeit und CO2
-    """
+class SCD30Sensor(BaseSensor):
+    """SCD30 Sensor für CO2, Temperatur und Luftfeuchtigkeit"""
     
-    def __init__(self, i2c_bus=None):
+    def __init__(self, config: Dict[str, Any]):
         """
         Initialisiert den SCD30 Sensor
         
         Args:
-            i2c_bus: I2C-Bus (optional, wird automatisch erkannt wenn None)
+            config: Sensor-Konfiguration mit temperature_offset, etc.
         """
-        self.is_available = False
-        self.scd30 = None
-        self.last_temperature: Optional[float] = None
-        self.last_humidity: Optional[float] = None
-        self.last_co2: Optional[float] = None
-        self.last_read_time: Optional[float] = None
-        self.mock_mode = MOCK_MODE
+        super().__init__("SCD30", config)
         
-        if not self.mock_mode:
+        self.sensor = None
+        self.i2c = None
+        self._mock_mode = not HARDWARE_AVAILABLE
+        self._last_values = {
+            'temperature': 22.0,
+            'humidity': 80.0,
+            'co2': 800
+        }
+        
+        # Initialisiere Sensor
+        if HARDWARE_AVAILABLE:
             try:
-                # I2C-Bus initialisieren
-                if i2c_bus is None:
-                    i2c_bus = board.I2C()
+                # I2C Bus initialisieren
+                self.i2c = busio.I2C(board.SCL, board.SDA)
                 
-                # SCD30 initialisieren
-                self.scd30 = adafruit_scd30.SCD30(i2c_bus)
+                # SCD30 Sensor initialisieren
+                self.sensor = adafruit_scd30.SCD30(self.i2c)
                 
-                # Messintervall setzen (in Sekunden)
-                # Der SCD30 benötigt mindestens 2 Sekunden zwischen Messungen
-                self.scd30.measurement_interval = 2
+                # Konfiguration anwenden
+                if 'temperature_offset' in config:
+                    self.sensor.temperature_offset = config['temperature_offset']
                 
-                self.is_available = True
-                print("✓ SCD30 Sensor erfolgreich initialisiert")
+                if 'altitude' in config:
+                    self.sensor.altitude = config.get('altitude', 0)
+                
+                # Messintervall setzen (2-1800 Sekunden, Standard: 2)
+                measurement_interval = config.get('measurement_interval', 2)
+                self.sensor.measurement_interval = measurement_interval
+                
+                self._mock_mode = False
+                self._available = True
+                logger.info(f"✓ SCD30 Sensor erfolgreich initialisiert (Hardware-Modus)")
+                print(f"✓ SCD30 Sensor gefunden und initialisiert!")
                 
             except Exception as e:
-                print(f"✗ Fehler beim Initialisieren des SCD30: {e}")
-                self.is_available = False
+                logger.error(f"Fehler bei SCD30-Initialisierung: {e}")
+                print(f"✗ SCD30 Hardware-Fehler: {e}")
+                self._mock_mode = True
+                self._available = True  # Mock ist verfügbar
+                print("⚠️  Wechsle zu Mock-Modus")
         else:
-            # Mock-Modus für Entwicklung
-            self.is_available = True
+            logger.warning("SCD30 im Mock-Modus (Hardware nicht verfügbar)")
             print("✓ SCD30 Mock-Modus aktiviert")
+            self._available = True
     
-    def read_all(self) -> Optional[Tuple[float, float, float]]:
+    def read(self) -> Optional[float]:
         """
-        Liest alle Werte vom Sensor (Temperatur, Luftfeuchtigkeit, CO2)
+        Liest Sensor-Werte (Hauptmethode für BaseSensor)
+        Gibt Temperatur zurück für Kompatibilität
+        """
+        data = self.read_all()
+        return data.get('temperature') if data else None
+    
+    def read_all(self) -> Optional[Dict[str, float]]:
+        """
+        Liest alle Sensor-Werte (CO2, Temperatur, Luftfeuchtigkeit)
         
         Returns:
-            Tuple (temperature, humidity, co2) oder None bei Fehler
+            Dict mit 'temperature', 'humidity', 'co2' oder None bei Fehler
         """
-        if not self.is_available:
-            return None
+        if self._mock_mode:
+            return self._read_mock_values()
         
         try:
-            if self.mock_mode:
-                # Mock-Daten für Entwicklung
-                import random
-                temperature = 22.0 + random.uniform(-2, 2)
-                humidity = 85.0 + random.uniform(-5, 5)
-                co2 = 800.0 + random.uniform(-100, 100)
-            else:
-                # Warte auf neue Daten (SCD30 benötigt Zeit für Messung)
-                if not self.scd30.data_available:
-                    time.sleep(0.5)
-                    if not self.scd30.data_available:
-                        return None
+            # Warte auf verfügbare Daten
+            max_retries = 10
+            for i in range(max_retries):
+                if self.sensor.data_available:
+                    # Lese Werte
+                    temperature = self.sensor.temperature
+                    humidity = self.sensor.relative_humidity
+                    co2 = self.sensor.CO2
+                    
+                    # Speichere letzte Werte
+                    self._last_values = {
+                        'temperature': round(temperature, 1),
+                        'humidity': round(humidity, 1),
+                        'co2': int(co2)
+                    }
+                    
+                    return self._last_values
                 
-                # Daten auslesen
-                temperature = self.scd30.temperature
-                humidity = self.scd30.relative_humidity
-                co2 = self.scd30.CO2
+                # Warte kurz
+                time.sleep(0.2)
             
-            # Werte speichern
-            self.last_temperature = round(temperature, 2)
-            self.last_humidity = round(humidity, 2)
-            self.last_co2 = round(co2, 1)
-            self.last_read_time = time.time()
-            
-            return (self.last_temperature, self.last_humidity, self.last_co2)
+            logger.warning("SCD30: Keine Daten verfügbar nach 10 Versuchen")
+            return self._last_values  # Gib letzte bekannte Werte zurück
             
         except Exception as e:
-            print(f"✗ Fehler beim Lesen des SCD30: {e}")
+            logger.error(f"Fehler beim Lesen des SCD30: {e}")
             return None
     
-    def read_temperature(self) -> Optional[float]:
-        """
-        Liest nur die Temperatur
+    def _read_mock_values(self) -> Dict[str, float]:
+        """Generiert Mock-Werte für Tests"""
+        import random
         
-        Returns:
-            Temperatur in °C oder None bei Fehler
-        """
-        result = self.read_all()
-        return result[0] if result else None
-    
-    def read_humidity(self) -> Optional[float]:
-        """
-        Liest nur die Luftfeuchtigkeit
+        # Simuliere leichte Schwankungen
+        self._last_values['temperature'] += random.uniform(-0.5, 0.5)
+        self._last_values['humidity'] += random.uniform(-2, 2)
+        self._last_values['co2'] += random.randint(-50, 50)
         
-        Returns:
-            Luftfeuchtigkeit in % oder None bei Fehler
-        """
-        result = self.read_all()
-        return result[1] if result else None
-    
-    def read_co2(self) -> Optional[float]:
-        """
-        Liest nur den CO2-Wert
+        # Halte Werte in realistischen Bereichen
+        self._last_values['temperature'] = max(15, min(30, self._last_values['temperature']))
+        self._last_values['humidity'] = max(40, min(95, self._last_values['humidity']))
+        self._last_values['co2'] = max(400, min(2000, self._last_values['co2']))
         
-        Returns:
-            CO2 in ppm oder None bei Fehler
-        """
-        result = self.read_all()
-        return result[2] if result else None
-    
-    def get_status(self) -> Dict[str, Any]:
-        """
-        Gibt den Status des Sensors zurück
-        
-        Returns:
-            Dictionary mit Statusinformationen
-        """
         return {
-            'sensor': 'SCD30',
-            'available': self.is_available,
-            'mock_mode': self.mock_mode,
-            'last_values': {
-                'temperature': self.last_temperature,
-                'humidity': self.last_humidity,
-                'co2': self.last_co2
-            },
-            'last_read_time': self.last_read_time
+            'temperature': round(self._last_values['temperature'], 1),
+            'humidity': round(self._last_values['humidity'], 1),
+            'co2': int(self._last_values['co2'])
         }
     
-    def calibrate_forced_recalibration(self, co2_ppm: int = 400):
+    def calibrate_forced_recalibration(self, reference_co2: int = 400):
         """
-        Erzwingt eine CO2-Kalibrierung (Forced Recalibration - FRC)
-        Verwende dies nur, wenn du sicher bist, dass der aktuelle CO2-Wert bekannt ist!
+        Führt eine erzwungene Kalibrierung durch (FRC - Forced Recalibration)
         
         Args:
-            co2_ppm: Bekannter CO2-Wert in ppm (Standard: 400 ppm für Frischluft)
+            reference_co2: Referenz CO2-Wert in ppm (Standard: 400 ppm = Außenluft)
         """
-        if not self.is_available or self.mock_mode:
-            print("⚠️  Kalibrierung nicht verfügbar (Mock-Modus oder Sensor nicht verfügbar)")
+        if self._mock_mode:
+            logger.warning("Kalibrierung im Mock-Modus nicht möglich")
             return
         
         try:
-            self.scd30.forced_recalibration_reference = co2_ppm
-            print(f"✓ CO2-Kalibrierung auf {co2_ppm} ppm gesetzt")
+            self.sensor.forced_recalibration_reference = reference_co2
+            logger.info(f"SCD30 Kalibrierung durchgeführt (Referenz: {reference_co2} ppm)")
+            print(f"✓ CO2-Kalibrierung erfolgreich ({reference_co2} ppm)")
         except Exception as e:
-            print(f"✗ Fehler bei der Kalibrierung: {e}")
+            logger.error(f"Fehler bei SCD30-Kalibrierung: {e}")
     
-    def set_temperature_offset(self, offset_celsius: float):
+    def set_temperature_offset(self, offset: float):
         """
-        Setzt einen Temperatur-Offset zur Kompensation von Eigenerwärmung
+        Setzt den Temperatur-Offset zur Kompensation der Eigenerwärmung
         
         Args:
-            offset_celsius: Offset in °C (typisch 2-4°C)
+            offset: Temperatur-Offset in °C (typisch 2-4°C)
         """
-        if not self.is_available or self.mock_mode:
-            print("⚠️  Temperatur-Offset nicht verfügbar (Mock-Modus oder Sensor nicht verfügbar)")
+        if self._mock_mode:
+            logger.warning("Temperatur-Offset im Mock-Modus nicht möglich")
             return
         
         try:
-            self.scd30.temperature_offset = offset_celsius
-            print(f"✓ Temperatur-Offset auf {offset_celsius}°C gesetzt")
+            self.sensor.temperature_offset = offset
+            self.config['temperature_offset'] = offset
+            logger.info(f"SCD30 Temperatur-Offset gesetzt: {offset}°C")
+            print(f"✓ Temperatur-Offset gesetzt: {offset}°C")
         except Exception as e:
-            print(f"✗ Fehler beim Setzen des Temperatur-Offsets: {e}")
+            logger.error(f"Fehler beim Setzen des Temperatur-Offsets: {e}")
     
-    def set_altitude_compensation(self, altitude_meters: int):
-        """
-        Setzt die Höhenkompensation für präzisere CO2-Messungen
+    def is_mock_mode(self) -> bool:
+        """Gibt zurück, ob der Sensor im Mock-Modus läuft"""
+        return self._mock_mode
+    
+    def get_sensor_info(self) -> Dict[str, Any]:
+        """Gibt Sensor-Informationen zurück"""
+        info = {
+            'name': self.name,
+            'type': 'SCD30',
+            'available': self._available,
+            'mock_mode': self._mock_mode,
+            'measures': ['temperature', 'humidity', 'co2']
+        }
         
-        Args:
-            altitude_meters: Höhe über dem Meeresspiegel in Metern
-        """
-        if not self.is_available or self.mock_mode:
-            print("⚠️  Höhenkompensation nicht verfügbar (Mock-Modus oder Sensor nicht verfügbar)")
-            return
+        if not self._mock_mode and self.sensor:
+            info.update({
+                'temperature_offset': self.sensor.temperature_offset,
+                'altitude': self.sensor.altitude,
+                'measurement_interval': self.sensor.measurement_interval
+            })
         
-        try:
-            self.scd30.altitude = altitude_meters
-            print(f"✓ Höhenkompensation auf {altitude_meters}m gesetzt")
-        except Exception as e:
-            print(f"✗ Fehler beim Setzen der Höhenkompensation: {e}")
-
-
-# Kompatibilitäts-Wrapper für einzelne Sensoren
-class SCD30Temperature(BaseSensor):
-    """Temperatur-Sensor-Wrapper für SCD30"""
-    
-    def __init__(self, scd30_instance: SCD30Sensor):
-        super().__init__("Temperature (SCD30)", "°C")
-        self.scd30 = scd30_instance
-        self.is_available = scd30_instance.is_available
-    
-    def initialize(self) -> bool:
-        return self.is_available
-    
-    def read(self) -> Optional[float]:
-        value = self.scd30.read_temperature()
-        if value is not None:
-            self.last_value = value
-            from datetime import datetime
-            self.last_read_time = datetime.now()
-        return value
-
-
-class SCD30Humidity(BaseSensor):
-    """Luftfeuchtigkeits-Sensor-Wrapper für SCD30"""
-    
-    def __init__(self, scd30_instance: SCD30Sensor):
-        super().__init__("Humidity (SCD30)", "%")
-        self.scd30 = scd30_instance
-        self.is_available = scd30_instance.is_available
-    
-    def initialize(self) -> bool:
-        return self.is_available
-    
-    def read(self) -> Optional[float]:
-        value = self.scd30.read_humidity()
-        if value is not None:
-            self.last_value = value
-            from datetime import datetime
-            self.last_read_time = datetime.now()
-        return value
-
-
-class SCD30CO2(BaseSensor):
-    """CO2-Sensor-Wrapper für SCD30"""
-    
-    def __init__(self, scd30_instance: SCD30Sensor):
-        super().__init__("CO2 (SCD30)", "ppm")
-        self.scd30 = scd30_instance
-        self.is_available = scd30_instance.is_available
-    
-    def initialize(self) -> bool:
-        return self.is_available
-    
-    def read(self) -> Optional[float]:
-        value = self.scd30.read_co2()
-        if value is not None:
-            self.last_value = value
-            from datetime import datetime
-            self.last_read_time = datetime.now()
-        return value
+        return info

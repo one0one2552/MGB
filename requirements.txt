@@ -5,7 +5,7 @@ Flask-SocketIO==5.3.5
 # Sensor Bibliotheken (Raspberry Pi kompatibel)
 # Anmerkung: Auf Windows für Entwicklung können Mock-Implementierungen verwendet werden
 # adafruit-circuitpython-dht==4.0.0  # DHT22 Sensor
-adafruit-circuitpython-scd30==2.2.8  # CO2 Sensor (SCD30)
+# adafruit-circuitpython-scd30==2.2.8  # CO2 Sensor (SCD30)
 # RPi.GPIO==0.7.1  # Für Raspberry Pi GPIO (nur auf Pi)
 
 # Datenverarbeitung
