@@ -300,21 +300,6 @@ def update_settings():
         return jsonify({'status': 'error', 'message': str(e)}), 500
 
 
-@app.route('/api/history/<sensor_name>')
-def get_history(sensor_name):
-    """
-    API-Endpunkt für historische Daten eines Sensors
-    """
-    # TODO: Echte Daten aus der Datenbank holen
-    limit = request.args.get('limit', default=100, type=int)
-    
-    history = {
-        'sensor_name': sensor_name,
-        'data': []  # TODO: Daten aus DataLogger
-    }
-    return jsonify(history)
-
-
 @app.route('/api/actuator/<actuator_name>/<action>', methods=['POST'])
 def control_actuator(actuator_name, action):
     """
