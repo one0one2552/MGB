@@ -609,7 +609,7 @@
     <script>
         // Theme beim Laden der Seite anwenden
         (function() {
-            const savedTheme = localStorage.getItem('theme') || 'dark';
+            const savedTheme = localStorage.getItem('mgb-theme') || 'dark';
             document.body.className = savedTheme + '-theme';
             console.log('Theme geladen:', savedTheme);
         })();
