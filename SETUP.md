@@ -101,7 +101,7 @@ cd MGB
 **Für Raspberry Pi OS Bookworm (ab 2024) oder neuere Systeme:**
 
 ```bash
-sudo pip3 install -r requirements.txt --break-system-packages
+sudo pip3 install -r requirements.txt --break-system-packages --ignore-installed PyYAML
 ```
 
 **Für ältere Systeme (ohne externally-managed-environment):**
@@ -110,7 +110,9 @@ sudo pip3 install -r requirements.txt --break-system-packages
 sudo pip3 install -r requirements.txt
 ```
 
-**⚠️ Hinweis:** Das `--break-system-packages` Flag ist nötig auf neueren Raspberry Pi OS Versionen und ist hier unbedenklich, da wir GPIO-Zugriff mit sudo benötigen.
+**⚠️ Hinweis:** 
+- Das `--break-system-packages` Flag ist nötig auf neueren Raspberry Pi OS Versionen und ist hier unbedenklich, da wir GPIO-Zugriff mit sudo benötigen.
+- Das `--ignore-installed PyYAML` umgeht Konflikte mit dem System-PyYAML Paket.
 
 **Wichtige Pakete:**
 - Flask, Flask-SocketIO (Webserver)
