@@ -79,6 +79,15 @@ class SCD30Sensor(BaseSensor):
             print("✓ SCD30 Mock-Modus aktiviert")
             self._available = True
     
+    def initialize(self) -> bool:
+        """
+        Initialisiert den Sensor (erforderlich von BaseSensor)
+        
+        Returns:
+            True wenn erfolgreich initialisiert
+        """
+        return self._available
+    
     def read(self) -> Optional[float]:
         """
         Liest Sensor-Werte (Hauptmethode für BaseSensor)
