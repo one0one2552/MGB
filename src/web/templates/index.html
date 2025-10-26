@@ -132,14 +132,29 @@
 
             <!-- Diagramme -->
             <section class="charts">
-                <h2 data-i18n="section_charts">Verlauf (letzte 24h)</h2>
+                <div class="chart-header">
+                    <h2 data-i18n="section_charts">Verlauf</h2>
+                    <div class="time-range-selector">
+                        <label data-i18n="time_range_label">Zeitraum:</label>
+                        <select id="timeRangeSelect" onchange="loadHistoricalData()">
+                            <option value="1">1 Stunde</option>
+                            <option value="12">12 Stunden</option>
+                            <option value="24" selected>24 Stunden</option>
+                            <option value="168">1 Woche</option>
+                            <option value="720">1 Monat</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="chart-container">
+                    <h3 data-i18n="chart_temperature">Temperatur</h3>
                     <canvas id="tempChart"></canvas>
                 </div>
                 <div class="chart-container">
+                    <h3 data-i18n="chart_humidity">Luftfeuchtigkeit</h3>
                     <canvas id="humidityChart"></canvas>
                 </div>
                 <div class="chart-container">
+                    <h3 data-i18n="chart_co2">CO2</h3>
                     <canvas id="co2Chart"></canvas>
                 </div>
             </section>

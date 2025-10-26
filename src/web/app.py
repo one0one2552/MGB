@@ -119,6 +119,80 @@ def get_config():
     return jsonify(config)
 
 
+@app.route('/api/history')
+def get_history():
+    """
+    API-Endpunkt für historische Sensor-Daten
+    
+    Query-Parameter:
+        hours: Anzahl der Stunden (z.B. 1, 12, 24, 168=Woche, 720=Monat)
+    """
+    from utils.data_logger import DataLogger
+    from datetime import datetime, timedelta
+    
+    # Zeitbereich aus Query-Parameter lesen
+    hours = request.args.get('hours', default=24, type=int)
+    
+    # DataLogger initialisieren
+    data_logger = DataLogger()
+    
+    # Zeitstempel berechnen
+    end_time = datetime.now()
+    start_time = end_time - timedelta(hours=hours)
+    
+    # Daten aus DB holen
+    all_data = data_logger.get_sensor_data(limit=10000)  # Große Anzahl für Zeitbereich
+    
+    # Nach Zeitbereich filtern und nach Sensor gruppieren
+    temperature_data = []
+    humidity_data = []
+    co2_data = []
+    
+    for record in all_data:
+        try:
+            timestamp = datetime.fromisoformat(record['timestamp'])
+            
+            # Nur Daten im Zeitbereich
+            if timestamp < start_time:
+                continue
+            
+            # Nach Sensor gruppieren
+            if record['sensor_name'] == 'temperature':
+                temperature_data.append({
+                    'timestamp': record['timestamp'],
+                    'value': record['value']
+                })
+            elif record['sensor_name'] == 'humidity':
+                humidity_data.append({
+                    'timestamp': record['timestamp'],
+                    'value': record['value']
+                })
+            elif record['sensor_name'] == 'co2':
+                co2_data.append({
+                    'timestamp': record['timestamp'],
+                    'value': record['value']
+                })
+        except Exception as e:
+            logger.error(f"Fehler beim Verarbeiten von Datensatz: {e}")
+            continue
+    
+    # Sortieren nach Zeitstempel (älteste zuerst für Chart.js)
+    temperature_data.reverse()
+    humidity_data.reverse()
+    co2_data.reverse()
+    
+    return jsonify({
+        'temperature': temperature_data,
+        'humidity': humidity_data,
+        'co2': co2_data,
+        'timeRange': {
+            'start': start_time.isoformat(),
+            'end': end_time.isoformat(),
+            'hours': hours
+        }
+    })
+
+
 @app.route('/api/pid/status')
 def get_pid_status():
     """

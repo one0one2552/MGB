@@ -130,13 +130,17 @@ class DataLogger:
             conn.commit()
     
     def get_sensor_data(self, sensor_name: Optional[str] = None, 
-                       limit: int = 100) -> List[Dict[str, Any]]:
+                       limit: int = 100,
+                       start_time: Optional[datetime] = None,
+                       end_time: Optional[datetime] = None) -> List[Dict[str, Any]]:
         """
         Liest Sensordaten aus der Datenbank
         
         Args:
             sensor_name: Name des Sensors (optional, sonst alle)
             limit: Maximale Anzahl der Datensätze
+            start_time: Startzeit für Abfrage (optional)
+            end_time: Endzeit für Abfrage (optional)
             
         Returns:
             Liste mit Sensordaten
@@ -144,18 +148,25 @@ class DataLogger:
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
             
+            query = 'SELECT timestamp, sensor_name, value, unit FROM sensor_data WHERE 1=1'
+            params = []
+            
             if sensor_name:
-                cursor.execute(
-                    'SELECT timestamp, sensor_name, value, unit FROM sensor_data '
-                    'WHERE sensor_name = ? ORDER BY timestamp DESC LIMIT ?',
-                    (sensor_name, limit)
-                )
-            else:
-                cursor.execute(
-                    'SELECT timestamp, sensor_name, value, unit FROM sensor_data '
-                    'ORDER BY timestamp DESC LIMIT ?',
-                    (limit,)
-                )
+                query += ' AND sensor_name = ?'
+                params.append(sensor_name)
+            
+            if start_time:
+                query += ' AND timestamp >= ?'
+                params.append(start_time.isoformat())
+            
+            if end_time:
+                query += ' AND timestamp <= ?'
+                params.append(end_time.isoformat())
+            
+            query += ' ORDER BY timestamp DESC LIMIT ?'
+            params.append(limit)
+            
+            cursor.execute(query, params)
             
             rows = cursor.fetchall()
             return [

@@ -10,9 +10,11 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('Seite geladen, initialisiere...');
     initCharts();
     loadInitialData();
+    loadHistoricalData(); // Historische Daten laden (Standard: 24h)
     
     // Regelmäßige Aktualisierung
     setInterval(updateStatus, 5000);
+    setInterval(loadHistoricalData, 60000); // Historische Daten alle 60s aktualisieren
 });
 
 // WebSocket Event-Handler
@@ -265,7 +267,66 @@ function initCharts() {
     });
 }
 
-// Diagramm aktualisieren
+// Historische Daten laden
+async function loadHistoricalData() {
+    try {
+        const timeRange = document.getElementById('timeRangeSelect').value;
+        console.log(`Lade historische Daten für ${timeRange} Stunden...`);
+        
+        const response = await fetch(`/api/history?hours=${timeRange}`);
+        const data = await response.json();
+        
+        console.log('Historische Daten empfangen:', data);
+        
+        // Temperatur-Diagramm aktualisieren
+        if (data.temperature && data.temperature.length > 0) {
+            tempChart.data.labels = data.temperature.map(d => 
+                new Date(d.timestamp).toLocaleString('de-DE', { 
+                    month: '2-digit', 
+                    day: '2-digit', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                })
+            );
+            tempChart.data.datasets[0].data = data.temperature.map(d => d.value);
+            tempChart.update();
+        }
+        
+        // Luftfeuchtigkeits-Diagramm aktualisieren
+        if (data.humidity && data.humidity.length > 0) {
+            humidityChart.data.labels = data.humidity.map(d => 
+                new Date(d.timestamp).toLocaleString('de-DE', { 
+                    month: '2-digit', 
+                    day: '2-digit', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                })
+            );
+            humidityChart.data.datasets[0].data = data.humidity.map(d => d.value);
+            humidityChart.update();
+        }
+        
+        // CO2-Diagramm aktualisieren
+        if (data.co2 && data.co2.length > 0) {
+            co2Chart.data.labels = data.co2.map(d => 
+                new Date(d.timestamp).toLocaleString('de-DE', { 
+                    month: '2-digit', 
+                    day: '2-digit', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                })
+            );
+            co2Chart.data.datasets[0].data = data.co2.map(d => d.value);
+            co2Chart.update();
+        }
+        
+        console.log('Diagramme aktualisiert');
+    } catch (error) {
+        console.error('Fehler beim Laden der historischen Daten:', error);
+    }
+}
+
+// Diagramm aktualisieren (für Live-Updates - wird nicht mehr verwendet)
 function updateChart(sensorId, value) {
     const charts = {
         'temp': tempChart,

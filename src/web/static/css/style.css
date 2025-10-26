@@ -352,6 +352,59 @@ section h2 {
 }
 
 /* Charts */
+.charts {
+    margin-top: 30px;
+}
+
+.chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding: 20px;
+    background: var(--card-bg);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+    border-left: 4px solid var(--tertiary-color);
+}
+
+.chart-header h2 {
+    margin: 0;
+    color: var(--primary-color);
+}
+
+.time-range-selector {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.time-range-selector label {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.time-range-selector select {
+    padding: 8px 15px;
+    border: 2px solid var(--card-border);
+    border-radius: 5px;
+    background: #1a1a1a;
+    color: var(--text-color);
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.time-range-selector select:hover {
+    border-color: var(--tertiary-color);
+}
+
+.time-range-selector select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.1);
+}
+
 .charts-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
@@ -365,6 +418,13 @@ section h2 {
     padding: 25px;
     border-radius: 10px;
     box-shadow: var(--shadow);
+}
+
+.chart-container h3 {
+    color: var(--primary-color);
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.3rem;
 }
 
 .chart-card h3 {
