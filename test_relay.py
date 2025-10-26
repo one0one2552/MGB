@@ -21,7 +21,6 @@ def test_relay():
     
     # Konfiguration für Heizmatte
     config = {
-        'inverted': True,  # LOW-Level-Trigger (Standard)
         'min_runtime': 5,  # Min 5 Sekunden laufen lassen
         'max_runtime': 30,  # Max 30 Sekunden für Test
         'cooldown': 10  # 10 Sekunden Pause zwischen Aktivierungen
