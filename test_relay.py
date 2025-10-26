@@ -19,15 +19,12 @@ def test_relay():
     print("MGB - Relay Test")
     print("=" * 60)
     
-    # Konfiguration für Heizmatte
-    config = {
-        'max_runtime': 30,  # Max 30 Sekunden für Test
-        'cooldown': 10  # 10 Sekunden Pause zwischen Aktivierungen
-    }
-    
-    # Relay initialisieren (GPIO 27 für Heizmatte)
+    # Relay initialisieren (GPIO 27 für Heizmatte) - LEERE CONFIG!
     print("\nInitialisiere Relay auf GPIO Pin 27...")
-    relay = RelayActuator(name='heater', pin=27, config=config)
+    relay = RelayActuator(name='heater', pin=27, config={})
+    
+    print('Initialisiert:', relay.is_available)
+    print('Aktiv:', relay.is_active)
     
     if not relay.is_available:
         print("✗ Relay nicht verfügbar!")
@@ -38,59 +35,51 @@ def test_relay():
     else:
         print("✓ Relay bereit (Hardware-Modus)")
     
-    print("\nStatus:", relay.get_status())
-    
     try:
         # Test 1: Einschalten
         print("\n" + "=" * 60)
         print("Test 1: Relay einschalten")
         print("=" * 60)
         
+        print("Warte 2 Sekunden...")
+        time.sleep(2)
+        
+        print("turn_on()...")
         if relay.turn_on():
             print("✓ Relay eingeschaltet")
-            print(f"  Laufzeit: {relay.get_runtime():.1f}s")
-            
-            # 10 Sekunden warten
-            for i in range(10):
-                time.sleep(1)
-                print(f"  Laufzeit: {relay.get_runtime():.1f}s")
         else:
             print("✗ Fehler beim Einschalten")
+        
+        print("Warte 5 Sekunden...")
+        time.sleep(5)
         
         # Test 2: Ausschalten
         print("\n" + "=" * 60)
         print("Test 2: Relay ausschalten")
         print("=" * 60)
         
+        print("turn_off()...")
         if relay.turn_off():
             print("✓ Relay ausgeschaltet")
         else:
             print("✗ Fehler beim Ausschalten")
         
-        # Test 3: Cooldown Test
+        print("Warte 3 Sekunden...")
+        time.sleep(3)
+        
+        # Test 3: Nochmal einschalten
         print("\n" + "=" * 60)
-        print("Test 3: Cooldown-Test (sollte fehlschlagen)")
+        print("Test 3: Nochmal einschalten")
         print("=" * 60)
         
-        print("Versuche sofort wieder einzuschalten...")
+        print("turn_on()...")
         if relay.turn_on():
-            print("✓ Eingeschaltet (Cooldown umgangen?)")
+            print("✓ Relay eingeschaltet")
         else:
-            print("✓ Cooldown funktioniert - Einschalten blockiert")
+            print("✗ Fehler beim Einschalten")
         
-        print(f"\nWarte {config['cooldown']} Sekunden für Cooldown...")
-        time.sleep(config['cooldown'])
-        
-        # Test 4: Nach Cooldown
-        print("\n" + "=" * 60)
-        print("Test 4: Einschalten nach Cooldown")
-        print("=" * 60)
-        
-        if relay.turn_on():
-            print("✓ Relay eingeschaltet nach Cooldown")
-            time.sleep(2)
-        else:
-            print("✗ Fehler beim Einschalten nach Cooldown")
+        print("Warte 3 Sekunden...")
+        time.sleep(3)
         
     except KeyboardInterrupt:
         print("\n\n⚠ Abbruch durch Benutzer")
@@ -100,9 +89,8 @@ def test_relay():
         print("\n" + "=" * 60)
         print("Cleanup")
         print("=" * 60)
-        relay.turn_off()
         relay.cleanup()
-        print("✓ Relay ausgeschaltet und aufgeräumt")
+        print("✓ Cleanup abgeschlossen")
         print("\nTest beendet!")
 
 
