@@ -194,37 +194,55 @@ def get_history():
     
     # Daten reduzieren basierend auf Intervall
     def reduce_data(data, interval_seconds):
-        """Reduziert Datenpunkte basierend auf Zeitintervall"""
+        """Reduziert Datenpunkte basierend auf Zeitintervall mit gleichmäßiger Verteilung"""
         if not data:
             return []
         
-        reduced = []
-        last_timestamp = None
+        if len(data) == 1:
+            return [{
+                'timestamp': data[0]['timestamp'].isoformat(),
+                'value': data[0]['value']
+            }]
         
-        for point in data:
-            # Ersten Punkt immer nehmen
-            if last_timestamp is None:
+        reduced = []
+        
+        # Ersten Punkt immer nehmen
+        reduced.append({
+            'timestamp': data[0]['timestamp'].isoformat(),
+            'value': data[0]['value']
+        })
+        
+        last_added_timestamp = data[0]['timestamp']
+        
+        # Durch alle Datenpunkte iterieren (außer erster und letzter)
+        for i in range(1, len(data) - 1):
+            point = data[i]
+            time_diff = (point['timestamp'] - last_added_timestamp).total_seconds()
+            
+            # Nur Punkte nehmen, die mindestens interval_seconds auseinander liegen
+            if time_diff >= interval_seconds:
                 reduced.append({
                     'timestamp': point['timestamp'].isoformat(),
                     'value': point['value']
                 })
-                last_timestamp = point['timestamp']
-            else:
-                # Nur Punkte nehmen, die mindestens interval_seconds auseinander liegen
-                time_diff = (point['timestamp'] - last_timestamp).total_seconds()
-                if time_diff >= interval_seconds:
-                    reduced.append({
-                        'timestamp': point['timestamp'].isoformat(),
-                        'value': point['value']
-                    })
-                    last_timestamp = point['timestamp']
+                last_added_timestamp = point['timestamp']
         
-        # Letzten Punkt immer nehmen (wenn nicht schon vorhanden)
-        if data and (not reduced or reduced[-1]['timestamp'] != data[-1]['timestamp'].isoformat()):
+        # Letzten Punkt nur hinzufügen, wenn er weit genug vom vorletzten entfernt ist
+        last_point = data[-1]
+        time_diff_last = (last_point['timestamp'] - last_added_timestamp).total_seconds()
+        
+        if time_diff_last >= interval_seconds or len(reduced) == 1:
+            # Letzten Punkt hinzufügen, wenn Intervall erfüllt oder nur ein Punkt vorhanden
             reduced.append({
-                'timestamp': data[-1]['timestamp'].isoformat(),
-                'value': data[-1]['value']
+                'timestamp': last_point['timestamp'].isoformat(),
+                'value': last_point['value']
             })
+        else:
+            # Letzten hinzugefügten Punkt durch aktuellsten ersetzen
+            reduced[-1] = {
+                'timestamp': last_point['timestamp'].isoformat(),
+                'value': last_point['value']
+            }
         
         return reduced
     
