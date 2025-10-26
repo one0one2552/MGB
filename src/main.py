@@ -53,26 +53,39 @@ def signal_handler(signum, frame):
     stop_event.set()
 
 
-def monitoring_loop(config: dict, data_logger: DataLogger):
+def monitoring_loop(config: dict, data_logger: DataLogger, sensors: dict):
     """
     Hauptschleife für Überwachung und Regelung
     
     Args:
         config: Konfiguration
         data_logger: DataLogger-Instanz
+        sensors: Dictionary mit Sensor-Instanzen
     """
     interval = config['measurement']['interval']
     logger.info(f"Starte Monitoring-Loop (Intervall: {interval}s)")
     
     while not stop_event.is_set():
         try:
-            # TODO: Sensoren auslesen
+            # Sensoren auslesen
+            if 'scd30' in sensors:
+                scd30 = sensors['scd30']
+                result = scd30.read_all()
+                
+                if result:
+                    temperature = result['temperature']
+                    humidity = result['humidity']
+                    co2 = result['co2']
+                    
+                    logger.info(f"SCD30: Temp={temperature}°C, Humidity={humidity}%, CO2={co2}ppm")
+                    
+                    # Daten loggen
+                    data_logger.log_measurement('temperature', temperature)
+                    data_logger.log_measurement('humidity', humidity)
+                    data_logger.log_measurement('co2', co2)
+            
             # TODO: Regelung durchführen
             # TODO: Aktoren steuern
-            # TODO: Daten loggen
-            
-            # Platzhalter für Entwicklung
-            logger.debug("Monitoring-Zyklus durchgeführt")
             
             # Auf nächsten Zyklus warten
             stop_event.wait(interval)
@@ -82,14 +95,19 @@ def monitoring_loop(config: dict, data_logger: DataLogger):
             time.sleep(5)  # Kurze Pause bei Fehler
 
 
-def start_web_server(config: dict):
+def start_web_server(config: dict, sensors: dict):
     """
     Startet den Webserver in einem separaten Thread
     
     Args:
         config: Konfiguration
+        sensors: Dictionary mit Sensor-Instanzen
     """
     from web.app import app, socketio
+    import web.app as web_app
+    
+    # Sensoren an Web-App übergeben
+    web_app.sensors = sensors
     
     host = config['web']['host']
     port = config['web']['port']
@@ -141,17 +159,38 @@ def main():
     data_logger = DataLogger()
     logger.info("DataLogger initialisiert")
     
-    # TODO: Sensoren initialisieren
+    # Sensoren initialisieren
+    logger.info("Initialisiere Sensoren...")
+    sensors = {}
+    
+    try:
+        from sensors.scd30_sensor import SCD30Sensor
+        
+        # Sensor-Konfiguration aus config.yaml
+        sensor_config = config.get('sensors', {}).get('co2', {})
+        scd30 = SCD30Sensor(sensor_config)
+        
+        if scd30._available:
+            sensors['scd30'] = scd30
+            if scd30.is_mock_mode():
+                logger.warning("✗ SCD30 im Mock-Modus (nur Testwerte)")
+            else:
+                logger.info("✓ SCD30 Sensor initialisiert (Hardware-Modus)")
+        else:
+            logger.warning("✗ SCD30 Sensor nicht verfügbar")
+    except Exception as e:
+        logger.error(f"✗ Fehler beim Initialisieren des SCD30: {e}", exc_info=True)
+    
     # TODO: Aktoren initialisieren
     
     # Webserver in separatem Thread starten
-    web_thread = Thread(target=start_web_server, args=(config,), daemon=True)
+    web_thread = Thread(target=start_web_server, args=(config, sensors), daemon=True)
     web_thread.start()
     logger.info("Webserver-Thread gestartet")
     
     # Monitoring-Loop starten
     try:
-        monitoring_loop(config, data_logger)
+        monitoring_loop(config, data_logger, sensors)
     except Exception as e:
         logger.error(f"Kritischer Fehler: {e}", exc_info=True)
     finally:
