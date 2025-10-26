@@ -12,9 +12,9 @@ document.addEventListener('DOMContentLoaded', function() {
     loadInitialData();
     loadHistoricalData(); // Historische Daten laden (Standard: 24h)
     
-    // Regelmäßige Aktualisierung
+    // Regelmäßige Aktualisierung nur für Live-Status
     setInterval(updateStatus, 5000);
-    setInterval(loadHistoricalData, 60000); // Historische Daten alle 60s aktualisieren
+    // KEIN Auto-Refresh für historische Daten - nur bei manueller Zeitbereichsänderung
 });
 
 // WebSocket Event-Handler
