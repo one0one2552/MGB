@@ -122,7 +122,7 @@ def get_config():
 @app.route('/api/history')
 def get_history():
     """
-    API-Endpunkt für historische Sensor-Daten
+    API-Endpunkt für historische Sensor-Daten mit intelligenter Aggregation
     
     Query-Parameter:
         hours: Anzahl der Stunden (z.B. 1, 12, 24, 168=Woche, 720=Monat)
@@ -133,6 +133,19 @@ def get_history():
     # Zeitbereich aus Query-Parameter lesen
     hours = request.args.get('hours', default=24, type=int)
     
+    # Intervall für Datenpunkte bestimmen (in Minuten!)
+    # Ziel: ca. 100-200 Datenpunkte für optimale Chart-Darstellung
+    if hours <= 1:
+        interval_minutes = 1  # 1 Stunde: alle 1min = 60 Punkte
+    elif hours <= 12:
+        interval_minutes = 5  # 12 Stunden: alle 5min = 144 Punkte
+    elif hours <= 24:
+        interval_minutes = 10  # 24 Stunden: alle 10min = 144 Punkte
+    elif hours <= 168:  # 1 Woche
+        interval_minutes = 60  # 1 Woche: alle 60min = 168 Punkte
+    else:  # 1 Monat
+        interval_minutes = 120  # 1 Monat: alle 2h = 360 Punkte
+    
     # DataLogger initialisieren
     data_logger = DataLogger()
     
@@ -140,28 +153,17 @@ def get_history():
     end_time = datetime.now()
     start_time = end_time - timedelta(hours=hours)
     
-    # Intervall für Datenpunkte bestimmen (in Sekunden)
-    # Ziel: ca. 100-200 Datenpunkte für optimale Chart-Darstellung
-    if hours <= 1:
-        interval_seconds = 60  # 1 Stunde: alle 60s = ~60 Punkte
-    elif hours <= 12:
-        interval_seconds = 300  # 12 Stunden: alle 5min = ~144 Punkte
-    elif hours <= 24:
-        interval_seconds = 600  # 24 Stunden: alle 10min = ~144 Punkte
-    elif hours <= 168:  # 1 Woche
-        interval_seconds = 3600  # 1 Woche: alle 60min = ~168 Punkte
-    else:  # 1 Monat
-        interval_seconds = 7200  # 1 Monat: alle 2h = ~360 Punkte
-    
-    # Daten aus DB holen mit Zeitfilter
+    # Daten aus DB holen
     all_data = data_logger.get_sensor_data(
-        limit=10000, 
-        start_time=start_time, 
+        limit=100000,  # Große Zahl für alle Daten
+        start_time=start_time,
         end_time=end_time
     )
     
-    # Nach Sensor gruppieren und nach Zeitstempel sortieren
-    sensor_data = {
+    logger.info(f"API /api/history: Abfrage für {hours}h, Intervall: {interval_minutes}min, Rohdaten: {len(all_data)} Einträge")
+    
+    # Nach Sensor gruppieren
+    raw_sensor_data = {
         'temperature': [],
         'humidity': [],
         'co2': []
@@ -169,87 +171,77 @@ def get_history():
     
     for record in all_data:
         try:
-            if record['sensor_name'] == 'temperature':
-                sensor_data['temperature'].append({
-                    'timestamp': datetime.fromisoformat(record['timestamp']),
-                    'value': record['value']
-                })
-            elif record['sensor_name'] == 'humidity':
-                sensor_data['humidity'].append({
-                    'timestamp': datetime.fromisoformat(record['timestamp']),
-                    'value': record['value']
-                })
-            elif record['sensor_name'] == 'co2':
-                sensor_data['co2'].append({
-                    'timestamp': datetime.fromisoformat(record['timestamp']),
+            timestamp = datetime.fromisoformat(record['timestamp'])
+            sensor_name = record['sensor_name']
+            
+            if sensor_name in raw_sensor_data:
+                raw_sensor_data[sensor_name].append({
+                    'timestamp': timestamp,
                     'value': record['value']
                 })
         except Exception as e:
             logger.error(f"Fehler beim Verarbeiten von Datensatz: {e}")
             continue
     
-    # Daten nach Zeitstempel sortieren (älteste zuerst)
-    for sensor_name in sensor_data:
-        sensor_data[sensor_name].sort(key=lambda x: x['timestamp'])
+    # Sortieren nach Zeitstempel (älteste zuerst)
+    for sensor_name in raw_sensor_data:
+        raw_sensor_data[sensor_name].sort(key=lambda x: x['timestamp'])
     
-    # Daten reduzieren basierend auf Intervall
-    def reduce_data(data, interval_seconds):
-        """Reduziert Datenpunkte basierend auf Zeitintervall mit gleichmäßiger Verteilung"""
+    logger.info(f"Rohdaten pro Sensor - Temp: {len(raw_sensor_data['temperature'])}, Humidity: {len(raw_sensor_data['humidity'])}, CO2: {len(raw_sensor_data['co2'])}")
+    
+    def aggregate_data(data, interval_minutes):
+        """
+        Aggregiert Daten in feste Zeitintervalle
+        Nimmt den Durchschnitt aller Werte in jedem Intervall
+        """
         if not data:
             return []
         
-        if len(data) == 1:
-            return [{
-                'timestamp': data[0]['timestamp'].isoformat(),
-                'value': data[0]['value']
-            }]
+        aggregated = []
+        current_bucket_start = None
+        current_bucket_values = []
         
-        reduced = []
-        
-        # Ersten Punkt immer nehmen
-        reduced.append({
-            'timestamp': data[0]['timestamp'].isoformat(),
-            'value': data[0]['value']
-        })
-        
-        last_added_timestamp = data[0]['timestamp']
-        
-        # Durch alle Datenpunkte iterieren (außer erster und letzter)
-        for i in range(1, len(data) - 1):
-            point = data[i]
-            time_diff = (point['timestamp'] - last_added_timestamp).total_seconds()
+        for point in data:
+            # Zeitstempel auf Intervall runden (abrunden)
+            timestamp = point['timestamp']
+            # Runde auf das nächste Intervall ab
+            minutes_since_start = int((timestamp - start_time).total_seconds() / 60)
+            bucket_index = minutes_since_start // interval_minutes
+            bucket_start = start_time + timedelta(minutes=bucket_index * interval_minutes)
             
-            # Nur Punkte nehmen, die mindestens interval_seconds auseinander liegen
-            if time_diff >= interval_seconds:
-                reduced.append({
-                    'timestamp': point['timestamp'].isoformat(),
-                    'value': point['value']
-                })
-                last_added_timestamp = point['timestamp']
+            # Neuer Bucket?
+            if current_bucket_start is None or bucket_start != current_bucket_start:
+                # Vorherigen Bucket abschließen
+                if current_bucket_values:
+                    avg_value = sum(current_bucket_values) / len(current_bucket_values)
+                    aggregated.append({
+                        'timestamp': current_bucket_start.isoformat(),
+                        'value': round(avg_value, 2)
+                    })
+                
+                # Neuen Bucket starten
+                current_bucket_start = bucket_start
+                current_bucket_values = [point['value']]
+            else:
+                # Zum aktuellen Bucket hinzufügen
+                current_bucket_values.append(point['value'])
         
-        # Letzten Punkt nur hinzufügen, wenn er weit genug vom vorletzten entfernt ist
-        last_point = data[-1]
-        time_diff_last = (last_point['timestamp'] - last_added_timestamp).total_seconds()
-        
-        if time_diff_last >= interval_seconds or len(reduced) == 1:
-            # Letzten Punkt hinzufügen, wenn Intervall erfüllt oder nur ein Punkt vorhanden
-            reduced.append({
-                'timestamp': last_point['timestamp'].isoformat(),
-                'value': last_point['value']
+        # Letzten Bucket abschließen
+        if current_bucket_values and current_bucket_start:
+            avg_value = sum(current_bucket_values) / len(current_bucket_values)
+            aggregated.append({
+                'timestamp': current_bucket_start.isoformat(),
+                'value': round(avg_value, 2)
             })
-        else:
-            # Letzten hinzugefügten Punkt durch aktuellsten ersetzen
-            reduced[-1] = {
-                'timestamp': last_point['timestamp'].isoformat(),
-                'value': last_point['value']
-            }
         
-        return reduced
+        return aggregated
     
-    # Daten für jeden Sensor reduzieren
-    temperature_data = reduce_data(sensor_data['temperature'], interval_seconds)
-    humidity_data = reduce_data(sensor_data['humidity'], interval_seconds)
-    co2_data = reduce_data(sensor_data['co2'], interval_seconds)
+    # Daten aggregieren
+    temperature_data = aggregate_data(raw_sensor_data['temperature'], interval_minutes)
+    humidity_data = aggregate_data(raw_sensor_data['humidity'], interval_minutes)
+    co2_data = aggregate_data(raw_sensor_data['co2'], interval_minutes)
+    
+    logger.info(f"Aggregierte Daten - Temp: {len(temperature_data)}, Humidity: {len(humidity_data)}, CO2: {len(co2_data)}")
     
     return jsonify({
         'temperature': temperature_data,
@@ -259,7 +251,7 @@ def get_history():
             'start': start_time.isoformat(),
             'end': end_time.isoformat(),
             'hours': hours,
-            'interval_seconds': interval_seconds
+            'interval_minutes': interval_minutes
         }
     })
 
